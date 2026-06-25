@@ -1,0 +1,32 @@
+/**
+{
+    "id": "018",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Basic Agent",
+    "difficulty": "beginner",
+    "icon": "robot",
+    "description": "Create an AI agent with a name, persona, and persistent instructions.",
+    "guidance": "An AI Agent is a configured AI instance with a fixed identity and purpose. Unlike raw aiChat() calls, agents encapsulate:\n\n• name — A unique identifier for the agent\n• description — What this agent does (used when it's a sub-agent in a hierarchy)\n• instructions — The system prompt that shapes behavior for every interaction\n\nThe key difference from a plain aiChat() with a system message: agents are reusable, configurable objects. Create them once, use them many times. They can be extended with tools, memory, skills, and sub-agents.\n\nagent.run() is the simplest way to invoke an agent. Pass a string or a message array, get a string back.\n\nAgents are stateless by default — each .run() call is independent. Add memory (sample 021) for stateful conversations.",
+    "output": "Welcome to BoxLang AI Support!\n\nI'm your dedicated BoxLang assistant, here to help you master the language and build great applications. Here's what I can help you with:\n\n• 📚 **Language Syntax** — structs, arrays, closures, classes, and more\n• 🤖 **AI Integration** — using the bx-ai module for chat, agents, and pipelines\n• 🌐 **Web Development** — miniserver setup, routing, REST APIs\n• 🔧 **Troubleshooting** — debugging tips, common errors, performance\n• 📦 **CommandBox** — package management, server configuration\n\nWhat would you like to learn or build today?",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/getting-started.md",
+    "provider": "openai"
+}
+*/
+
+// Create a reusable agent with a fixed persona and instructions
+agent = aiAgent(
+    name        : "BoxLangAssistant",
+    description : "A helpful BoxLang developer support agent",
+    instructions: "
+        You are an expert BoxLang developer assistant from Ortus Solutions.
+        You specialize in BoxLang language features, the bx-ai module, CommandBox, and web development.
+        Always be friendly, concise, and include code examples when relevant.
+        Format responses using markdown for readability.
+    "
+)
+
+// Run the agent
+response = agent.run( "Introduce yourself and list what you can help me with." )
+println( response )

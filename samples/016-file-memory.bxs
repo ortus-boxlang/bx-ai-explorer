@@ -1,0 +1,51 @@
+/**
+{
+    "id": "016",
+    "category": "Memory Systems",
+    "categorySlug": "memory-systems",
+    "categoryIcon": "brain",
+    "title": "Persistent File Memory",
+    "difficulty": "intermediate",
+    "icon": "hard-drive",
+    "description": "Persist conversation history to disk so it survives server restarts.",
+    "guidance": "File memory writes conversation history to a JSON file on disk. Unlike windowed memory which lives in RAM, file memory survives server restarts and process crashes.\n\nThe file path pattern supports per-user isolation using the userId:\n• filePath: \"/data/chats/${userId}-history.json\"\n\nThis memory type is ideal for:\n• CLI tools where users expect persistent history\n• Development environments where you restart the server often\n• Single-user applications\n• Simple persistence without a database\n\nFor multi-user web apps, consider JDBC memory (stores in your database) or Cache memory (uses CacheBox). For semantic search across history, Vector memory (ChromaDB, pgvector) is the right choice.\n\nAlways call memory.clear() when starting a fresh conversation — otherwise old messages accumulate.",
+    "output": "Session restored! I found 3 previous messages in your conversation history.\n\n> Remind me what we discussed last time?\nIn our last conversation, you were asking about BoxLang closures. We covered:\n1. What closures are — functions that capture their enclosing scope\n2. A practical URL builder example\n3. The difference between closures and regular functions in BoxLang\n\nWould you like to continue from there, or start a new topic?",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/memory.md",
+    "provider": "claude"
+}
+*/
+
+userId     = "user-42"
+historyDir = expandPath( "./data/chats" )
+
+// File memory persists to disk — survives server restarts
+memory = aiMemory( "file",
+    userId        : userId,
+    conversationId: "main",
+    config        : {
+        filePath   : "#historyDir#/#userId#-history.json",
+        maxMessages: 50
+    }
+)
+
+// Check if there's existing history
+existing = memory.getAll()
+if ( existing.len() > 1 ) {  // > 1 because system message counts
+    println( "Session restored! I found #existing.len() - 1# previous messages in your conversation history." )
+} else {
+    // Fresh session — add system persona
+    memory.add( aiMessage().system(
+        "You are a persistent BoxLang assistant. Remember what users tell you across sessions."
+    ) )
+}
+
+function chat( userInput ) {
+    memory.add( aiMessage().user( userInput ) )
+    response = aiChat( memory.getAll(), {}, { provider: "claude" } )
+    memory.add( aiMessage().assistant( response ) )
+    return response
+}
+
+println( "" )
+println( "> Remind me what we discussed last time?" )
+println( chat( "Remind me what we discussed last time?" ) )

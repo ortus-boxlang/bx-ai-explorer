@@ -1,0 +1,53 @@
+/**
+{
+    "id": "013",
+    "category": "AI Tools",
+    "categorySlug": "ai-tools",
+    "categoryIcon": "wrench",
+    "title": "Multiple Tools",
+    "difficulty": "intermediate",
+    "icon": "toolbox",
+    "description": "Equip the AI with several tools and let it chain multiple tool calls in one response.",
+    "guidance": "You can pass as many tools as needed. The AI will invoke the right tool(s) in the right order — sometimes calling multiple tools within a single response.\n\nIn this example, answering 'What's 15% of the temperature in NYC?' requires the AI to:\n1. Call get_weather('New York, NY') to get the temperature\n2. Call calculate('72 * 0.15') to compute 15%\n3. Synthesize both results into a natural response\n\nThis chained tool calling is one of the most powerful patterns in AI development — the model acts as an intelligent orchestrator of your functions.\n\nKeep tool descriptions short and distinct so the AI can easily choose between them. Overlapping descriptions confuse the model.",
+    "output": "Let me get that information for you!\n\nThe current temperature in New York City is 68°F.\n\n15% of 68°F = **10.2**\n\nSo if you're thinking about a temperature-based tip calculation or some other use of 15%, that comes out to 10.2 degrees Fahrenheit.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/tools.md",
+    "provider": "openai"
+}
+*/
+
+// Tool 1: Weather lookup
+weatherTool = aiTool(
+    "get_weather",
+    "Get current temperature and conditions for a location.",
+    ( args ) => ({ temperature: 68, condition: "Sunny", unit: "F" })
+).describeLocation( "City and state, e.g. 'New York, NY'" )
+
+// Tool 2: Math calculator
+calcTool = aiTool(
+    "calculate",
+    "Evaluate a mathematical expression and return the numeric result.",
+    ( args ) => evaluate( args.expression )
+).describeExpression( "A valid math expression, e.g. '72 * 0.15' or '(100 + 50) / 3'" )
+
+// Tool 3: Unit converter
+converterTool = aiTool(
+    "convert_units",
+    "Convert a value from one unit to another (temperature, distance, weight).",
+    ( args ) => {
+        if ( args.from == "F" && args.to == "C" ) {
+            return round( ( args.value - 32 ) * 5 / 9, 1 )
+        }
+        return args.value
+    }
+)
+    .describeValue( "Numeric value to convert" )
+    .describeFrom( "Source unit: F, C, km, mi, kg, lb" )
+    .describeTo( "Target unit: F, C, km, mi, kg, lb" )
+
+// One prompt — the AI chains all three tools as needed
+result = aiChat(
+    "What's the temperature in New York? Then calculate 15% of it, and also convert it to Celsius.",
+    { tools: [ weatherTool, calcTool, converterTool ] }
+)
+
+println( result )

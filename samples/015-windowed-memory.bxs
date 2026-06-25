@@ -1,0 +1,45 @@
+/**
+{
+    "id": "015",
+    "category": "Memory Systems",
+    "categorySlug": "memory-systems",
+    "categoryIcon": "brain",
+    "title": "Windowed Memory",
+    "difficulty": "intermediate",
+    "icon": "clock-counter-clockwise",
+    "description": "Keep the last N messages in a rolling window — the simplest conversation memory.",
+    "guidance": "Windowed memory automatically maintains a sliding window of the most recent N messages. When the window is full and a new message arrives, the oldest message is dropped.\n\nThis is the right choice when:\n• You want simple conversation context without storage overhead\n• Recent context matters more than full history\n• You're building CLI chatbots or session-scoped assistants\n\nThe chat() function pattern shown here is the canonical BoxLang AI conversation loop:\n1. Add the user message to memory\n2. Call aiChat() with the full memory history\n3. Add the AI response to memory\n4. Repeat\n\nFor multi-user scenarios, pass userId and conversationId to isolate conversations:\naiMemory(\"windowed\", userId: session.userId, conversationId: \"main-chat\", config: { maxMessages: 20 })",
+    "output": "> Hello! What can you help me with today?\nHi! I'm your BoxLang AI assistant. I can help you with coding questions, explain BoxLang concepts, review your code, or answer general programming questions. What would you like to explore?\n\n> What's a closure in BoxLang?\nA closure in BoxLang is a function that captures variables from its surrounding scope. Example:\n\n    multiplier = ( factor ) => ( n ) => n * factor\n    double = multiplier( 2 )\n    println( double( 5 ) )  // 15\n\n> Can you show me a more practical example?\nSure! Here's a real-world closure for building URL query strings:\n\n    makeUrl = ( base ) => ( params ) => base & \"?\" & params.map( (k,v) => k & \"=\" & v ).toList( \"&\" )\n    apiUrl = makeUrl( \"https://api.example.com/search\" )\n    println( apiUrl({ q: \"boxlang\", limit: 10 }) )",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/memory.md",
+    "provider": "openai"
+}
+*/
+
+// Create a windowed memory that keeps the last 10 messages
+memory = aiMemory( "windowed", { maxMessages: 10 } )
+
+// Seed the system persona
+memory.add( aiMessage().system(
+    "You are a friendly BoxLang expert assistant. Be concise and always include code examples."
+) )
+
+// The conversation loop
+function chat( userInput ) {
+    memory.add( aiMessage().user( userInput ) )
+    response = aiChat( memory.getAll() )
+    memory.add( aiMessage().assistant( response ) )
+    return response
+}
+
+// Simulate a multi-turn conversation
+questions = [
+    "Hello! What can you help me with today?",
+    "What's a closure in BoxLang?",
+    "Can you show me a more practical example?"
+]
+
+for ( question in questions ) {
+    println( "> " & question )
+    println( chat( question ) )
+    println( "" )
+}

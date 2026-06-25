@@ -1,0 +1,55 @@
+/**
+{
+    "id": "026",
+    "category": "Pipelines",
+    "categorySlug": "pipelines",
+    "categoryIcon": "flow-arrow",
+    "title": "Multi-Stage Pipeline",
+    "difficulty": "advanced",
+    "icon": "arrows-merge",
+    "description": "Chain multiple AI calls where each step's output feeds the next.",
+    "guidance": "Multi-stage pipelines pass output from one AI call into the next using the ${_input} variable. Each .pipe() adds a new stage.\n\nThis pattern enables sophisticated AI workflows:\n• Simplify → Translate → Formalize\n• Extract → Validate → Format\n• Draft → Review → Revise\n\nEach stage can use a different model optimized for that task:\n• Stage 1 (simplification) → fast, cheap model (gpt-4o-mini)\n• Stage 2 (translation) → high-quality model (claude-3-5-sonnet)\n• Stage 3 (formalization) → same or different\n\nThe ${_input} variable automatically receives the previous stage's output. If a stage returns a struct (from withStructuredOutput), you can access fields with ${_input_fieldName}.\n\nKeep stages focused on single transformations. Multi-stage pipelines are most powerful when each step is a clear, discrete transformation.",
+    "output": "=== Original ===\nThe quantum entanglement phenomenon occurs when particles become correlated in such a way that the quantum state of each particle cannot be described independently of the state of the others, even when separated by a large distance.\n\n=== Stage 1: Simplified ===\nQuantum entanglement is when two particles become linked together. Even if they're far apart, what happens to one instantly affects the other.\n\n=== Stage 2: Translated to Spanish ===\nEl entrelazamiento cuántico ocurre cuando dos partículas se conectan. Aunque estén muy separadas, lo que le pasa a una afecta instantáneamente a la otra.\n\n=== Stage 3: Made Formal ===\nEl fenómeno de entrelazamiento cuántico se manifiesta cuando dos partículas establecen una correlación tal que el estado cuántico de cada una no puede describirse de forma independiente, independientemente de la distancia que las separe.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/pipelines/multi-model.md",
+    "provider": "openai"
+}
+*/
+
+complexText = "The quantum entanglement phenomenon occurs when particles become correlated in such a way that the quantum state of each particle cannot be described independently of the state of the others, even when separated by a large distance."
+
+println( "=== Original ===" )
+println( complexText )
+println( "" )
+
+// Stage 1: Simplify the technical text
+simplifyStage = aiMessage()
+    .user( "Simplify this text for a general audience in 1-2 sentences: ${_input}" )
+    .toDefaultModel()
+    .transform( (r) => r.content.trim() )
+
+// Stage 2: Translate the simplified text
+translateStage = aiMessage()
+    .user( "Translate this to ${language}: ${_input}" )
+    .toModel( "claude", "" )
+    .transform( (r) => r.content.trim() )
+
+// Stage 3: Formalize the translated text
+formalizeStage = aiMessage()
+    .user( "Rewrite this in a more formal, academic style: ${_input}" )
+    .toDefaultModel()
+    .transform( (r) => r.content.trim() )
+
+// Run the multi-stage pipeline
+simplified = simplifyStage.run({ _input: complexText })
+println( "=== Stage 1: Simplified ===" )
+println( simplified )
+println( "" )
+
+translated = translateStage.run({ _input: simplified, language: "Spanish" })
+println( "=== Stage 2: Translated to Spanish ===" )
+println( translated )
+println( "" )
+
+formalized = formalizeStage.run({ _input: translated })
+println( "=== Stage 3: Made Formal ===" )
+println( formalized )

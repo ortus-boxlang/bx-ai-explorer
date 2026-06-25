@@ -1,0 +1,19 @@
+/**
+{
+    "id": "001",
+    "category": "Basic Chatting",
+    "categorySlug": "basic-chatting",
+    "categoryIcon": "chat-circle",
+    "title": "Hello AI",
+    "difficulty": "beginner",
+    "icon": "chat-circle-dots",
+    "description": "Your very first BoxLang AI interaction — one line of code.",
+    "guidance": "The aiChat() function is the simplest entry point for AI in BoxLang. Pass any string and you get a string response back — no boilerplate, no HTTP clients, no JSON parsing.\n\nBoxLang AI handles authentication, model selection, retries, and response extraction automatically based on your boxlang.json configuration.\n\nThis pattern is perfect for: quick one-off queries, content generation, prototyping ideas, and simple Q&A features in your app.",
+    "output": "Hello! BoxLang is a modern, dynamic JVM-based programming language from Ortus Solutions designed to make web, CLI, and enterprise development fast, productive, and enjoyable. It combines the simplicity of scripting with the power of the Java platform.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/basic-chatting.md",
+    "provider": "openai"
+}
+*/
+
+answer = aiChat( "Hello! Tell me about BoxLang in one sentence." )
+println( answer )

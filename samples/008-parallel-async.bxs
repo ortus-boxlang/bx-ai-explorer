@@ -1,0 +1,36 @@
+/**
+{
+    "id": "008",
+    "category": "Streaming & Async",
+    "categorySlug": "streaming-async",
+    "categoryIcon": "broadcast",
+    "title": "Parallel AI Calls",
+    "difficulty": "intermediate",
+    "icon": "git-fork",
+    "description": "Fire N AI requests simultaneously and collect all results — massive time savings.",
+    "guidance": "The real power of aiChatAsync() is fan-out parallelism: fire N requests at the same time, then collect all results. The total wait time is the slowest single request, not the sum of all requests.\n\nExample: 4 translations that each take 2 seconds\n• Sequential: 4 × 2s = 8 seconds\n• Parallel:    max(2s, 2s, 2s, 2s) = 2 seconds\n\nThis pattern is invaluable for:\n• Batch content generation (translate/summarize/classify many items)\n• A/B testing different prompts simultaneously\n• Enriching database records with AI metadata\n• Running the same prompt against multiple providers to compare quality\n\nAlways set a reasonable timeout on .get() to avoid blocking forever if one request fails.",
+    "output": "Translating to 4 languages simultaneously...\n\nSpanish : ¡BoxLang hace que el desarrollo de IA sea simple y divertido!\nFrench  : BoxLang rend le développement IA simple et amusant !\nGerman  : BoxLang macht KI-Entwicklung einfach und macht Spaß!\nJapanese: BoxLangはAI開発をシンプルで楽しいものにします！\n\nCompleted in ~2.1 seconds (vs ~8s sequential)",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/advanced-chatting.md",
+    "provider": "openai"
+}
+*/
+
+languages = [ "Spanish", "French", "German", "Japanese" ]
+text      = "BoxLang makes AI development simple and fun!"
+futures   = []
+
+// Fire all translations simultaneously
+for ( lang in languages ) {
+    futures.append(
+        aiChatAsync( "Translate this to #lang# (return ONLY the translation): #text#" )
+    )
+}
+
+println( "Translating to #languages.len()# languages simultaneously..." )
+println( "" )
+
+// Collect results as they finish
+for ( var i = 1; i <= futures.len(); i++ ) {
+    translation = futures[ i ].get( 30 )
+    println( languages[ i ].lJustify( 8 ) & ": " & translation )
+}

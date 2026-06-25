@@ -1,0 +1,80 @@
+/**
+{
+    "id": "029",
+    "category": "RAG & Documents",
+    "categorySlug": "rag",
+    "categoryIcon": "books",
+    "title": "Full RAG System",
+    "difficulty": "advanced",
+    "icon": "database",
+    "description": "Build a complete Retrieval-Augmented Generation system: load docs, embed, store, and query.",
+    "guidance": "RAG (Retrieval-Augmented Generation) is the architecture that lets AI answer questions about YOUR data — documentation, databases, knowledge bases — without fine-tuning.\n\nThe RAG workflow has two phases:\n\n**Indexing Phase (run once or on update):**\n1. Load documents with aiDocuments()\n2. Store in vector memory → embeddings are computed and stored\n\n**Query Phase (every user question):**\n1. The user's question is embedded\n2. Vector search finds the most semantically similar document chunks\n3. The relevant chunks are injected into the AI prompt as context\n4. The AI answers using ONLY the provided context\n\nVector memory options:\n• BoxVector (built-in, no external service)\n• ChromaDB (local Docker container)\n• PostgreSQL pgvector (if you already have Postgres)\n• Pinecone, Weaviate, Qdrant (managed cloud)\n\nCritical tip: Set temperature to 0.1–0.3 for RAG. You want factual, grounded answers, not creative improvisation.",
+    "output": "=== Indexing Phase ===\nLoading documents from /docs...\nLoaded 47 document chunks.\nStoring in ChromaDB vector store (computing embeddings)...\nIndexing complete. 47 chunks stored.\n\n=== Query Phase ===\nQuestion: How do I configure memory in BoxLang AI?\n\nRetrieved 3 relevant chunks:\n  [0.94] docs/memory.md — Memory Systems Overview\n  [0.91] docs/memory.md — Windowed Memory Configuration\n  [0.87] docs/agents/memory.md — Agent Memory Integration\n\nAnswer:\nTo configure memory in BoxLang AI, use the aiMemory() function with your chosen memory type.\n\nFor basic conversation memory:\n    memory = aiMemory( \"windowed\", { maxMessages: 20 } )\n\nFor persistent memory:\n    memory = aiMemory( \"file\", userId: \"user-123\", config: { filePath: \"./chat.json\" } )\n\nFor agents, pass the memory object directly:\n    agent = aiAgent( name: \"Assistant\", memory: memory )\n\nAll memory types support the same add(), getAll(), and clear() interface.",
+    "docsUrl": "https://ai.ortusbooks.com/rag/rag.md",
+    "provider": "openai"
+}
+*/
+
+// ── INDEXING PHASE (run once, or when docs change) ─────────────────────────
+
+// 1. Configure vector memory (ChromaDB)
+vectorMemory = aiMemory( "chroma",
+    userId        : "knowledge-base",
+    conversationId: "docs",
+    config        : {
+        collection       : "bxai-docs",
+        embeddingProvider: "openai",
+        embeddingModel   : "text-embedding-3-small"
+    }
+)
+
+// 2. Load and index documents
+println( "=== Indexing Phase ===" )
+println( "Loading documents from /docs..." )
+
+result = aiDocuments( "./docs", {
+    type      : "directory",
+    recursive : true,
+    extensions: [ "md", "txt" ]
+}).toMemory(
+    memory  = vectorMemory,
+    options = { chunkSize: 1000, overlap: 200 }
+)
+
+println( "Loaded #result.chunks# document chunks." )
+println( "Indexing complete. #result.chunks# chunks stored." )
+println( "" )
+
+// ── QUERY PHASE (on every user question) ──────────────────────────────────
+
+// 3. Create a knowledge agent backed by the vector store
+knowledgeAgent = aiAgent(
+    name        : "DocumentationAssistant",
+    description : "Answers questions using the BoxLang AI documentation",
+    instructions: "
+        Answer questions ONLY using the provided documentation context.
+        If the answer is not in the context, say 'I don't have information about that in the docs.'
+        Always be specific and cite which document section your answer comes from.
+    ",
+    memory      : vectorMemory,
+    params      : { temperature: 0.2 }
+)
+
+// 4. Query the knowledge base
+println( "=== Query Phase ===" )
+question = "How do I configure memory in BoxLang AI?"
+println( "Question: " & question )
+println( "" )
+
+// Show which chunks were retrieved
+relevant = vectorMemory.getRelevant( query: question, limit: 3, threshold: 0.8 )
+println( "Retrieved #relevant.len()# relevant chunks:" )
+for ( doc in relevant ) {
+    println( "  [" & numberFormat( doc.score, "0.00" ) & "] " & doc.metadata.source )
+}
+println( "" )
+
+// Get the AI-grounded answer
+answer = knowledgeAgent.run( question )
+println( "Answer:" )
+println( answer )

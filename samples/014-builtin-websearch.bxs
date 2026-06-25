@@ -1,0 +1,27 @@
+/**
+{
+    "id": "014",
+    "category": "AI Tools",
+    "categorySlug": "ai-tools",
+    "categoryIcon": "wrench",
+    "title": "Built-In Web Search Tool",
+    "difficulty": "intermediate",
+    "icon": "magnifying-glass",
+    "description": "Give agents real-time web search capability using the built-in webSearch@bxai tool.",
+    "guidance": "BoxLang AI ships with several built-in tools you can add to agents using the string shorthand 'toolName@bxai'. The most useful is webSearch@bxai, which gives your agent access to current information beyond its training cutoff.\n\nBuilt-in tools available:\n• webSearch@bxai — search the web (requires Brave/Tavily/Exa API key)\n• print@bxai — print debug output during agent execution\n• log@bxai — write to BoxLang log system\n• sendEmail@bxai — send email notifications\n\nFor webSearch, set your search provider API key in boxlang.json:\n{\n  \"modules\": { \"bxai\": { \"settings\": {\n    \"webSearch\": { \"provider\": \"brave\", \"apiKey\": \"${BRAVE_API_KEY}\" }\n  }}}\n}\n\nThis is one of the fastest ways to build a research assistant — the agent automatically decides when to search vs. answer from training data.",
+    "output": "Based on my search results:\n\n**BoxLang AI v3.2.0** was released recently and includes:\n\n• New Agent Registry for managing named agents across your application\n• Built-in web search integration with Brave, Tavily, and Exa providers\n• Streaming support for class-based agents\n• Sub-agent hierarchy improvements with shared memory pools\n• MCP (Model Context Protocol) client support\n\nYou can install it with: `box install bx-ai` or `install-bx-module bx-ai`",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/tools.md",
+    "provider": "openai"
+}
+*/
+
+// The "webSearch@bxai" string references the built-in web search tool
+researchAgent = aiAgent(
+    name        : "ResearchAssistant",
+    description : "An AI research assistant with real-time web access",
+    instructions: "Use web search to find current, accurate information. Always cite what you found.",
+    tools       : [ "webSearch@bxai" ]
+)
+
+answer = researchAgent.run( "What are the latest features in BoxLang AI? Give me the most recent release notes." )
+println( answer )

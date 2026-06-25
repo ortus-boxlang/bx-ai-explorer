@@ -1,0 +1,59 @@
+/**
+{
+    "id": "024",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Agent Registry",
+    "difficulty": "advanced",
+    "icon": "address-book",
+    "description": "Register named agents at startup and resolve them anywhere in your app.",
+    "guidance": "The Agent Registry is a global singleton that manages named agent instances across your application. Register agents once at startup, then resolve them anywhere by name.\n\nThis solves the 'where do I create agents?' problem in web apps:\n\nWithout registry: new agents.OrderAgent() → creates a new instance on every request\nWith registry: aiAgentRegistry().get('OrderSupport@my-app') → same instance, already configured\n\nRegistration pattern (Application.bx → onApplicationStart):\n\n    function onApplicationStart() {\n        aiAgentRegistry().register( new agents.OrderAgent(), \"my-app\" )\n        aiAgentRegistry().register( new agents.BillingAgent(), \"my-app\" )\n    }\n\nResolution pattern (any .bxm or service):\n\n    agent = aiAgentRegistry().get( \"OrderSupport@my-app\" )\n    response = agent.run( request.userMessage )\n\nThe 'module' parameter namespaces agents to prevent collisions across different modules in a multi-module application.",
+    "output": "=== Registered Agents ===\nordersupport@my-app    → OrderSupport (tools: 3, memory: cache)\nbillingagent@my-app    → BillingAgent (tools: 2, memory: cache)\nresearchassistant@my-app → ResearchAssistant (tools: 1, memory: windowed)\n\n=== Resolved and Running ===\nOrderSupport: Order ORD-4521 is confirmed and ships tomorrow via FedEx.\nBilling: Invoice #INV-2024-089 is due Jan 31st for $1,299.00. Payment link sent to your email.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/getting-started.md",
+    "provider": "openai"
+}
+*/
+
+// ── Application.bx (onApplicationStart) ─────────────────────────
+// Register agents once at application startup
+registry = aiAgentRegistry()
+
+registry.register(
+    aiAgent(
+        name        : "OrderSupport",
+        description : "Order status and fulfillment support",
+        instructions: "Help customers with order inquiries. Be concise.",
+        tools       : [ aiTool( "checkOrder", "Check order status", (args) => { return { status: "Confirmed", ships: "Tomorrow" } } ).describeOrderId("Order ID") ],
+        memory      : aiMemory( "cache", { cacheKey: "orders" } ),
+        register    : true
+    ),
+    "my-app"
+)
+
+registry.register(
+    aiAgent(
+        name        : "BillingAgent",
+        description : "Billing, invoices, and payment support",
+        instructions: "Handle billing questions professionally.",
+        register    : true
+    ),
+    "my-app"
+)
+
+// List all registered agents
+println( "=== Registered Agents ===" )
+for ( entry in registry.list() ) {
+    println( entry.fullName.lJustify( 30 ) & " → " & entry.name )
+}
+println( "" )
+
+// ── Anywhere in your app ──────────────────────────────────────────
+// Resolve and use agents by name
+println( "=== Resolved and Running ===" )
+
+orderAgent   = registry.get( "OrderSupport@my-app" )
+billingAgent = registry.get( "BillingAgent@my-app" )
+
+println( "OrderSupport: " & orderAgent.run( "What's the status of order ORD-4521?" ) )
+println( "Billing: "      & billingAgent.run( "When is invoice INV-2024-089 due?" ) )

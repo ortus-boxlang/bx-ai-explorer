@@ -1,0 +1,36 @@
+/**
+{
+    "id": "009",
+    "category": "Structured Output",
+    "categorySlug": "structured-output",
+    "categoryIcon": "brackets-curly",
+    "title": "Struct Template Schema",
+    "difficulty": "intermediate",
+    "icon": "cube",
+    "description": "Get type-safe, structured data back from AI using a struct template.",
+    "guidance": "Instead of parsing AI text manually, pass a struct template as the returnFormat. BoxLang AI will instruct the model to return data matching your template's shape and types, then automatically parse and validate the response.\n\nThe template's values define the expected types:\n• \"\" (empty string) → string field\n• 0 or 0.0 → numeric field\n• false → boolean field\n• [] → array field\n\nThis is perfect for data extraction, classification, and any case where you need predictable output structure. The AI is constrained to your schema — no more 'Sorry, I can't return JSON' responses.\n\nFor reusable schemas with getter/setter methods, see the Class Schema sample (010).",
+    "output": "Product Name : MacBook Pro 16-inch (M3 Max)\nPrice        : $3499.00\nIn Stock     : true\nRating       : 4.8\nTags         : [laptop, apple, professional, m3, macos]",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/structured-output.md",
+    "provider": "openai"
+}
+*/
+
+// Define the expected data shape using a struct template
+template = {
+    productName: "",
+    price      : 0.0,
+    inStock    : false,
+    rating     : 0.0,
+    tags       : []
+}
+
+product = aiChat(
+    "Generate realistic product data for a high-end Apple laptop.",
+    { returnFormat: template }
+)
+
+println( "Product Name : " & product.productName )
+println( "Price        : $" & numberFormat( product.price, "_.00" ) )
+println( "In Stock     : " & product.inStock )
+println( "Rating       : " & product.rating )
+println( "Tags         : [" & product.tags.toList( ", " ) & "]" )

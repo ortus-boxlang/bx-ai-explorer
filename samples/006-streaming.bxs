@@ -1,0 +1,28 @@
+/**
+{
+    "id": "006",
+    "category": "Streaming & Async",
+    "categorySlug": "streaming-async",
+    "categoryIcon": "broadcast",
+    "title": "Real-Time Streaming",
+    "difficulty": "intermediate",
+    "icon": "wave-sine",
+    "description": "Stream AI responses token-by-token as they're generated using aiChatStream().",
+    "guidance": "aiChatStream() delivers the AI's response incrementally — each chunk arrives as the model generates it, rather than waiting for the complete response.\n\nThis is essential for:\n• Chat UIs where users expect instant feedback (like ChatGPT's typewriter effect)\n• Long responses where you don't want to block for 10+ seconds\n• Progress indicators in CLI tools\n\nThe callback receives raw Server-Sent Events (SSE) chunks. Extract the text content using safe navigation: chunk.choices?.first()?.delta?.content. The ?: operator returns an empty string if any part of the chain is null (which happens on the final [DONE] chunk).\n\nIn web apps, combine with HTMX Server-Sent Events or WebSockets to stream directly to the browser.",
+    "output": "AI: Once upon a time, in the bustling tech hub of San Jose, a BoxLang developer named Sofia received an unusual ticket: \"Build an AI assistant for our customer portal — by Friday.\"\n\nShe opened her terminal, typed three lines of BoxLang, and watched in amazement as the AI responded instantly. No REST clients. No JSON parsing. No SDK setup.\n\n\"Is that... it?\" her teammate asked, peering over her shoulder.\n\n\"That's it,\" Sofia smiled. \"BoxLang AI handles everything.\"\n\nBy Thursday afternoon, the portal was live — with a chat assistant that remembered context, used company tools, and streamed responses in real time. The Friday deadline came and went without drama.\n\nThe moral: great tools make great developers.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/advanced-chatting.md",
+    "provider": "openai"
+}
+*/
+
+print( "AI: " )
+
+aiChatStream(
+    "Tell me a short story about a BoxLang developer who built an AI app in one day.",
+    ( chunk ) => {
+        content = chunk.choices?.first()?.delta?.content ?: ""
+        print( content )
+    }
+)
+
+println( "" ) // final newline

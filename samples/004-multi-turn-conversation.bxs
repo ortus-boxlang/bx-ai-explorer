@@ -1,0 +1,39 @@
+/**
+{
+    "id": "004",
+    "category": "Basic Chatting",
+    "categorySlug": "basic-chatting",
+    "categoryIcon": "chat-circle",
+    "title": "Multi-Turn Conversation",
+    "difficulty": "beginner",
+    "icon": "chats",
+    "description": "Pass a message history array to give the AI full conversation context.",
+    "guidance": "Every AI model is stateless by default — it has no memory of previous messages unless you send them. To simulate a conversation, pass an array of message objects where each object has a 'role' and 'content'.\n\nThe three roles are:\n• system — Sets the AI's persona, rules, and instructions. Sent once at the start.\n• user — Messages from the human.\n• assistant — Previous AI responses you want the model to remember.\n\nThis pattern is the foundation of all chatbots. You manage the history array yourself — append each user message and AI response, then pass the full array on each call.\n\nFor automatic history management, see the Memory samples (016–018).",
+    "output": "BoxLang supports several data types out of the box:\n\n**Primitives:**\n- String — \"Hello, World!\"\n- Numeric — integers and floating-point (1, 3.14)\n- Boolean — true / false\n- Date/Time — date objects with full date manipulation\n\n**Complex Types:**\n- Struct — key/value pairs: { name: \"Luis\", age: 30 }\n- Array — ordered list: [1, 2, 3]\n- Query — tabular data (think ResultSet)\n\n**Special:**\n- Null — null or javaCast(\"null\", \"\")\n- Closure / Lambda — function references\n- Class instances\n\nBoxLang uses dynamic typing, so you rarely need to declare types explicitly.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/basic-chatting.md",
+    "provider": "gemini"
+}
+*/
+
+// Build the conversation history manually
+messages = [
+    {
+        role   : "system",
+        content: "You are a friendly BoxLang instructor. Keep answers concise and use examples."
+    },
+    {
+        role   : "user",
+        content: "What is BoxLang?"
+    },
+    {
+        role   : "assistant",
+        content: "BoxLang is a modern, dynamic JVM language from Ortus Solutions. It brings CFML-style productivity to the Java platform, great for web apps, CLIs, and APIs."
+    },
+    {
+        role   : "user",
+        content: "What data types does it support?"
+    }
+]
+
+answer = aiChat( messages, {}, { provider: "gemini" } )
+println( answer )

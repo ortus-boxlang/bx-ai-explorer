@@ -1,0 +1,50 @@
+/**
+{
+    "id": "007",
+    "category": "Streaming & Async",
+    "categorySlug": "streaming-async",
+    "categoryIcon": "broadcast",
+    "title": "Async Chat (Non-Blocking)",
+    "difficulty": "intermediate",
+    "icon": "timer",
+    "description": "Fire AI requests in the background with aiChatAsync() and collect results when ready.",
+    "guidance": "aiChatAsync() returns a Java Future immediately without waiting for the AI response. Your code continues running, and you call .get() to retrieve the result when you need it.\n\nThis is the pattern for:\n• Firing multiple independent AI calls simultaneously\n• Running AI in parallel with database queries or other I/O\n• Building responsive apps that don't freeze while waiting for AI\n\nAlways call .get(timeout) with a timeout (in seconds) to avoid hanging indefinitely. Handle TimeoutException and AuthenticationException separately for robust error handling.\n\nFor multiple concurrent calls, see the 'Parallel Async' sample (008).",
+    "output": "Requests sent, doing other work...\n\nBoxLang Benefits:\n1. JVM-powered performance with scripting simplicity\n2. First-class AI integration with a single function call\n3. Full Java interoperability — use any Maven library\n\nFunctional Programming Benefits:\n1. Immutability reduces bugs and makes code easier to reason about\n2. Pure functions are trivial to test and cache\n3. Higher-order functions (map, filter, reduce) eliminate boilerplate loops",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/advanced-chatting.md",
+    "provider": "claude"
+}
+*/
+
+// Fire two requests simultaneously — neither blocks the other
+future1 = aiChatAsync(
+    "List the top 3 benefits of BoxLang in a numbered list.",
+    {},
+    { provider: "claude" }
+)
+
+future2 = aiChatAsync(
+    "List the top 3 benefits of functional programming in a numbered list.",
+    {},
+    { provider: "claude" }
+)
+
+// While the AI thinks, do other work...
+println( "Requests sent, doing other work..." )
+println( "" )
+
+// Collect results (wait up to 30 seconds each)
+try {
+    answer1 = future1.get( 30 )
+    answer2 = future2.get( 30 )
+
+    println( "BoxLang Benefits:" )
+    println( answer1 )
+    println( "" )
+    println( "Functional Programming Benefits:" )
+    println( answer2 )
+
+} catch( "TimeoutException" e ) {
+    println( "Request timed out after 30 seconds: " & e.message )
+} catch( "AuthenticationException" e ) {
+    println( "API key error — check your boxlang.json: " & e.message )
+}

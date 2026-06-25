@@ -1,0 +1,63 @@
+/**
+{
+    "id": "028",
+    "category": "RAG & Documents",
+    "categorySlug": "rag",
+    "categoryIcon": "books",
+    "title": "Loading Documents",
+    "difficulty": "advanced",
+    "icon": "files",
+    "description": "Load text, PDFs, URLs, and database records into AI-ready document chunks.",
+    "guidance": "aiDocuments() is the universal document loader for BoxLang AI. It supports multiple source types and returns an array of document objects that can be fed into vector memory or processed directly.\n\nSupported source types:\n• text — Plain text or .txt files\n• pdf — PDF documents (requires pdfbox module)\n• markdown / md — Markdown files\n• directory — All files in a directory (use recursive: true for subdirs)\n• http / url — Fetch and parse a webpage\n• webcrawler — Follow links up to maxDepth\n• sql — Database query results\n• csv — CSV files\n\nBest practices for chunking:\n• Chunk size 800–1200 characters works well for most content\n• 10–20% overlap prevents context loss at chunk boundaries\n• Use 'recursive' chunking strategy for structured text\n\nAfter loading, store documents in vector memory using .toMemory() for semantic search (see the full RAG sample 029).",
+    "output": "=== Loading documents... ===\n\nLoaded 3 source types:\n  Text file   : 1 document\n  PDF         : 24 pages → 38 chunks\n  Markdown dir: 12 files → 89 chunks\n\nSample document:\n  ID      : guide-chunk-1\n  Content : BoxLang is a modern JVM-based language designed for productivity...\n  Metadata: { source: 'guide.txt', chunkIndex: 1, totalChunks: 3 }\n\nTotal documents ready for vector storage: 128",
+    "docsUrl": "https://ai.ortusbooks.com/rag/document-loaders.md",
+    "provider": "openai"
+}
+*/
+
+// Load from multiple source types
+println( "=== Loading documents... ===" )
+println( "" )
+
+allDocuments = []
+
+// 1. Load a plain text file
+textDocs = aiDocuments( "./docs/intro.txt", "text" ).load()
+allDocuments.append( textDocs, true )
+println( "Text file   : #textDocs.len()# document(s)" )
+
+// 2. Load a PDF (pages 1-50 only)
+pdfDocs = aiDocuments( "./docs/guide.pdf", "pdf" )
+    .pageRange( 1, 50 )
+    .load()
+allDocuments.append( pdfDocs, true )
+println( "PDF         : #pdfDocs.len()# page chunk(s)" )
+
+// 3. Load all markdown files in a directory (recursive)
+mdDocs = aiDocuments( "./docs/", { type: "directory", extensions: [ "md", "markdown" ] } )
+    .recursive()
+    .load()
+allDocuments.append( mdDocs, true )
+println( "Markdown dir: #mdDocs.len()# file(s)" )
+
+println( "" )
+println( "Total documents loaded: #allDocuments.len()#" )
+
+// 4. Load from a web URL
+// webDoc = aiDocuments( "https://boxlang.io/docs", "webcrawler" ).maxDepth( 2 ).load()
+
+// 5. Load from a database query
+// sqlDocs = aiDocuments(
+//     "SELECT id, title, content FROM knowledge_base WHERE active = 1",
+//     { type: "sql", datasource: "myDB", contentField: "content", idField: "id" }
+// ).load()
+
+// Show a sample document
+if ( allDocuments.len() > 0 ) {
+    sample = allDocuments[ 1 ]
+    println( "" )
+    println( "Sample document:" )
+    println( "  ID      : " & sample.getId() )
+    println( "  Content : " & left( sample.getContent(), 80 ) & "..." )
+    println( "  Metadata: " & serializeJSON( sample.getMetadata() ) )
+}

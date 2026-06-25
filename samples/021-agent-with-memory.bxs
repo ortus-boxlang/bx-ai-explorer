@@ -1,0 +1,49 @@
+/**
+{
+    "id": "021",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Agent with Memory",
+    "difficulty": "intermediate",
+    "icon": "brain",
+    "description": "Give an agent persistent conversation memory so it remembers context across calls.",
+    "guidance": "By default, each agent.run() call is stateless — the agent has no memory of previous interactions. Add memory to make conversations persistent.\n\nThe memory is attached to the agent at creation and automatically populated on each .run() call. You don't manually add messages — the agent handles that internally.\n\nMemory + Agent pattern:\n• The agent prepends its memory to every prompt automatically\n• Each response is stored back into memory\n• Use userId + conversationId for multi-user isolation\n\nAvailable memory types with agents:\n• windowed — RAM only, last N messages\n• file — JSON on disk, survives restarts\n• session — Web session scope\n• cache — CacheBox distributed cache\n• jdbc — Database table\n• chroma/pgvector — Vector memory for semantic search (see RAG samples)\n\nFor a customer service bot, pair cache memory (survives restarts) with a conversationId tied to the support ticket ID.",
+    "output": "[Turn 1] User: My name is Carlos and I'm learning BoxLang.\nAgent: Nice to meet you, Carlos! BoxLang is a fantastic choice. What aspect would you like to start with — web development, CLI tools, or the AI module?\n\n[Turn 2] User: Tell me about arrays.\nAgent: Great question, Carlos! BoxLang arrays are dynamic and 1-indexed...\n\n[Turn 3] User: What's my name again?\nAgent: Your name is Carlos! You mentioned it when we started our conversation. How are you getting along with BoxLang so far?",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/memory.md",
+    "provider": "openai"
+}
+*/
+
+// Cache memory persists across server requests (great for web apps)
+memory = aiMemory( "cache",
+    userId        : "user-carlos",
+    conversationId: "tutoring-session",
+    config        : {
+        cacheName  : "default",
+        maxMessages: 30,
+        cacheTimeout: 3600  // 1 hour
+    }
+)
+
+// Agent with memory — remembers context across all .run() calls
+tutorAgent = aiAgent(
+    name        : "BoxLangTutor",
+    description : "A patient BoxLang tutor that remembers student progress",
+    instructions: "You are a patient BoxLang tutor. Remember the student's name and what topics you've already covered. Build on previous explanations. Ask follow-up questions to check understanding.",
+    memory      : memory
+)
+
+// Each .run() call automatically reads and updates memory
+turns = [
+    "My name is Carlos and I'm learning BoxLang for the first time.",
+    "Tell me about arrays.",
+    "What's my name again?"
+]
+
+for ( var i = 1; i <= turns.len(); i++ ) {
+    println( "[Turn #i#] User: " & turns[ i ] )
+    response = tutorAgent.run( turns[ i ] )
+    println( "Agent: " & response )
+    println( "" )
+}

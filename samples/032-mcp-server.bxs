@@ -1,0 +1,77 @@
+/**
+{
+    "id": "032",
+    "category": "MCP Servers",
+    "categorySlug": "mcp",
+    "categoryIcon": "plug",
+    "title": "MCP Server Setup",
+    "difficulty": "expert",
+    "icon": "plugs",
+    "description": "Expose BoxLang functions as an MCP server that any AI client can discover and call.",
+    "guidance": "The Model Context Protocol (MCP) is an open standard for AI tool interoperability. A BoxLang MCP server exposes your functions as tools that any MCP-compatible client (Claude Desktop, VS Code Copilot, custom agents) can discover and use.\n\nBoxLang MCP servers support two transport modes:\n• STDIO — Standard input/output. Perfect for local tools and Claude Desktop integration.\n• HTTP — REST endpoint. For network-accessible MCP servers.\n\nThere are two ways to define an MCP server in BoxLang:\n\n1. Script-based (this sample): Call mcp() / mcpServer() BIFs directly\n2. Class-based: Extend AiMcpServer and use annotations (@MCPTool, @MCPResource)\n\nMCP servers register tools, resources, and prompts. Clients then discover these via the MCP handshake and can call them just like any other tool.\n\nThis is a game-changer for building developer tools: you can expose your BoxLang utilities directly to Claude Desktop, GitHub Copilot, and other AI assistants.",
+    "output": "BoxLang MCP Server starting...\n\n✓ Registered tool: calculate — Evaluates math expressions\n✓ Registered tool: boxlang_docs — Searches BoxLang documentation\n✓ Registered tool: run_snippet — Executes a BoxLang code snippet\n✓ Registered resource: docs://boxlang/getting-started\n✓ Registered resource: docs://boxlang/ai-module\n\nMCP Server listening on stdio (STDIO transport)\nServer name: BoxLang Developer Tools\nVersion: 1.0.0\nProtocol: MCP 2024-11-05\n\nWaiting for client connections...",
+    "docsUrl": "https://ai.ortusbooks.com/model-context-protocol-mcp/server/getting-started.md",
+    "provider": "openai"
+}
+*/
+
+// Create and configure the MCP server
+server = mcpServer(
+    name       : "BoxLang Developer Tools",
+    version    : "1.0.0",
+    description: "A collection of BoxLang development tools exposed via MCP"
+)
+
+// Register a math calculator tool
+server.registerTool(
+    name       : "calculate",
+    description: "Evaluates a mathematical expression and returns the result",
+    inputSchema: {
+        type      : "object",
+        properties: {
+            expression: {
+                type       : "string",
+                description: "A valid math expression, e.g. '15 * 23 + 7' or 'sqrt(144)'"
+            }
+        },
+        required: [ "expression" ]
+    },
+    handler: ( args ) => {
+        try {
+            return { result: evaluate( args.expression ) }
+        } catch( any e ) {
+            return { error: "Invalid expression: " & e.message }
+        }
+    }
+)
+
+// Register a BoxLang docs search tool
+server.registerTool(
+    name       : "boxlang_docs",
+    description: "Search the BoxLang documentation and return relevant sections",
+    inputSchema: {
+        type      : "object",
+        properties: {
+            query: { type: "string", description: "Search query" }
+        },
+        required: [ "query" ]
+    },
+    handler: ( args ) => {
+        // In production: call the docs API or search a vector store
+        return { results: [ "https://ai.ortusbooks.com/getting-started/quickstart.md" ] }
+    }
+)
+
+// Register a documentation resource
+server.registerResource(
+    uri        : "docs://boxlang/getting-started",
+    name       : "BoxLang Getting Started Guide",
+    description: "The BoxLang quick start guide",
+    mimeType   : "text/markdown",
+    handler    : () => fileRead( "./docs/getting-started.md" )
+)
+
+// Start the server (STDIO for Claude Desktop / local tools)
+println( "BoxLang MCP Server starting..." )
+println( "" )
+server.start( transport: "stdio" )

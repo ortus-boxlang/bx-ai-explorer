@@ -1,0 +1,60 @@
+/**
+{
+    "id": "031",
+    "category": "Multi-Agent Systems",
+    "categorySlug": "multi-agent",
+    "categoryIcon": "graph",
+    "title": "Three-Level Agent Hierarchy",
+    "difficulty": "expert",
+    "icon": "tree",
+    "description": "Build a CTO → Engineering Lead → Specialist hierarchy of AI agents.",
+    "guidance": "Agent hierarchies can be as deep as needed. This example shows a realistic three-level structure:\n\nLevel 1 (CTO): Strategic decisions, high-level coordination\nLevel 2 (Engineering Lead): Coordinates technical specialists\nLevel 3 (Specialists): Deep domain experts\n\nRequests flow down the hierarchy — the CTO delegates to the Engineering Lead, who delegates to the right Specialist. Responses flow back up, with each level synthesizing and contextualizing the output from below.\n\nThis architecture mirrors real-world engineering organizations and is useful for:\n• Complex systems that require multiple domains of expertise\n• Workflows where quality control matters (lead reviews specialist work)\n• Cost optimization — high-tier models at top, cheaper/faster at leaf nodes\n\nEach sub-agent runs in its own context with its own memory, tools, and model. They don't share state unless you explicitly wire up shared memory.",
+    "output": "[CTO → Engineering Lead → SQL Expert]\n\nCTO received request: 'Optimize our customer order search — it's taking 4 seconds'\n  → Delegated to: Engineering Lead\n    → Engineering Lead analyzed: Performance issue, SQL domain\n      → Delegated to: SQL Expert\n\nSQL Expert analysis:\n  Issue: Full table scan on orders (500K rows) with no index on customer_id + status\n  \n  Optimized query:\n  CREATE INDEX idx_orders_customer_status ON orders (customer_id, status, created_at DESC);\n  \n  SELECT o.id, o.status, o.total, o.created_at\n  FROM orders o\n  WHERE o.customer_id = :customerId\n    AND o.status IN ('pending', 'processing')\n  ORDER BY o.created_at DESC\n  LIMIT 20;\n  \n  Expected improvement: 4.0s → ~0.05s (80x faster)\n\nEngineering Lead: Validated. Recommend staging test before production deploy.\nCTO: Approved. Schedule for next maintenance window.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/hierarchy.md",
+    "provider": "openai"
+}
+*/
+
+// Level 3: Specialist agents (leaf nodes)
+sqlAgent = aiAgent(
+    name        : "SQLExpert",
+    description : "Writes and optimizes SQL queries for maximum performance",
+    instructions: "You are a database performance expert. Always analyze query plans, suggest indexes, and provide before/after performance estimates. Write PostgreSQL-compatible SQL."
+)
+
+boxlangAgent = aiAgent(
+    name        : "BoxLangExpert",
+    description : "Writes and reviews BoxLang application code",
+    instructions: "You are a senior BoxLang architect. Write idiomatic, performant BoxLang with proper error handling and documentation."
+)
+
+securityAgent = aiAgent(
+    name        : "SecurityExpert",
+    description : "Reviews code and architecture for security vulnerabilities",
+    instructions: "You are a security engineer. Identify OWASP Top 10 risks, suggest mitigations, and explain attack vectors clearly."
+)
+
+// Level 2: Engineering Lead (coordinates specialists)
+engineeringLead = aiAgent(
+    name        : "EngineeringLead",
+    description : "Coordinates technical work across SQL, BoxLang, and Security specialists",
+    instructions: "You are a senior engineering lead. Analyze incoming requests and route them to the right specialist(s). After getting specialist results, validate and add your own insights before responding to the CTO.",
+    subAgents   : [ sqlAgent, boxlangAgent, securityAgent ]
+)
+
+// Level 1: CTO (top-level coordinator)
+cto = aiAgent(
+    name        : "CTO",
+    description : "Technical director that makes strategic decisions and coordinates engineering",
+    instructions: "You are the CTO of a BoxLang-powered SaaS company. For technical problems, delegate to the Engineering Lead. Frame all responses in terms of business impact and timeline.",
+    subAgents   : [ engineeringLead ]
+)
+
+// Request flows: CTO → EngineeringLead → SQLExpert
+println( "[CTO → Engineering Lead → SQL Expert]" )
+println( "" )
+
+response = cto.run(
+    "Our customer order search is taking 4 seconds. It's affecting conversion rates. Fix it."
+)
+println( response )

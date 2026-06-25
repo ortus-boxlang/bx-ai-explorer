@@ -1,0 +1,58 @@
+/**
+{
+    "id": "022",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Class-Based Agent",
+    "difficulty": "advanced",
+    "icon": "file-code",
+    "description": "Encapsulate a fully-configured agent in a reusable BoxLang class.",
+    "guidance": "For production applications, define agents as BoxLang classes that extend AiAgent. This approach gives you:\n\n• Reusability — instantiate anywhere with new agents.OrderAgent()\n• Organization — agent logic lives in its own file\n• Testability — unit test the agent config with TestBox\n• Inheritance — create a base company agent class, then specialize it\n• Lifecycle hooks — override init() for complex setup\n\nThe pattern:\n1. Class extends bxModules.bxai.models.runnables.AiAgent\n2. Override init() and call super.init() with your config\n3. Register tools, configure memory, set policies in private methods\n4. Instantiate with new agents.MyAgent() and call .run()\n\nFor app-wide agents (created once at startup), combine with the Agent Registry pattern (sample 023) to register and resolve named agents.",
+    "output": "Order Status Report:\n\n✅ Order ORD-77123 is confirmed and being prepared for shipment.\n\nDetails:\n- Items: BoxLang Enterprise License (×1)\n- Order Date: 2024-01-15\n- Status: Processing → Expected to ship within 24 hours\n- Estimated Delivery: January 18-20\n\nWould you like me to set up a shipping notification? I can also check if expedited shipping is available for this order.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/class-based-agents.md",
+    "provider": "openai"
+}
+*/
+
+// ── agents/OrderSupportAgent.bx ────────────────────────────────────────────
+// class extends="bxModules.bxai.models.runnables.AiAgent" {
+//
+//     function init() {
+//         super.init(
+//             name        : "OrderSupport",
+//             description : "Handles order status, returns, and escalations",
+//             instructions: "You are an expert customer support agent for an e-commerce platform.
+//                            Help customers with their orders. Always verify the order ID before
+//                            sharing details. Be empathetic and solution-focused.",
+//             model       : aiModel( provider: "openai", params: { model: "gpt-4o-mini", temperature: 0.2 } ),
+//             memory      : aiMemory( "cache", { cacheKey: "order-support", maxMessages: 20 } ),
+//             params      : { temperature: 0.2 }
+//         )
+//         registerTools()
+//         return this
+//     }
+//
+//     private function registerTools() {
+//         this.withTools( [
+//             aiTool( "getOrderStatus", "Get order status by order ID",
+//                     ( args ) => orderService.getStatus( args.orderId ) )
+//                 .describeOrderId( "Order ID, e.g. ORD-12345" ),
+//
+//             aiTool( "createEscalation", "Escalate unresolved issues to human support",
+//                     ( args ) => ticketService.createEscalation( args.summary ) )
+//                 .describeSummary( "Brief summary of the customer issue" )
+//         ] )
+//     }
+// }
+// ────────────────────────────────────────────────────────────────────────────
+
+// Instantiate and use the class-based agent
+agent    = new agents.OrderSupportAgent()
+response = agent.run( "What's the status of order ORD-77123?" )
+println( response )
+
+// Test the agent configuration
+config = agent.getConfig()
+println( "" )
+println( "Agent: " & config.name & " | Tools: " & config.toolCount )

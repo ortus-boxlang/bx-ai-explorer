@@ -1,0 +1,25 @@
+/**
+{
+    "id": "005",
+    "category": "Basic Chatting",
+    "categorySlug": "basic-chatting",
+    "categoryIcon": "chat-circle",
+    "title": "Message Builder",
+    "difficulty": "intermediate",
+    "icon": "stack",
+    "description": "Use the fluent aiMessage() API to compose structured, readable conversations.",
+    "guidance": "Building message arrays by hand works, but aiMessage() gives you a fluent, readable alternative. Chain .system(), .user(), and .assistant() calls to compose conversations that read like dialogue.\n\nThe real power comes when you use aiMessage() as the start of a Pipeline — chaining .to(aiModel()) and .transform() calls. See the Pipeline samples (024–026) to explore this further.\n\naiMessage() shines when:\n• You have complex system prompts to compose\n• You want to simulate a conversation for few-shot prompting\n• You're building reusable prompt templates\n• You need to inject dynamic variables with ${placeholder} syntax",
+    "output": "Code Review for: function greet( name ) { return 'Hello, ' & name & '!' }\n\n✅ **What's Good:**\n- Simple and readable\n- Correct use of string concatenation with &\n- Follows BoxLang naming conventions\n\n⚠️ **Suggestions:**\n1. Add an argument type hint: function greet( required string name )\n2. Handle empty/null name: if ( name.len() == 0 ) return \"Hello, World!\"\n3. Consider returnType annotation: string function greet( required string name )\n\n📝 **Improved Version:**\n```\nstring function greet( required string name = \"World\" ) {\n    return \"Hello, \" & name & \"!\"\n}\n```",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/advanced-chatting.md",
+    "provider": "openai"
+}
+*/
+
+// Compose a structured prompt using the fluent message builder
+message = aiMessage()
+    .system( "You are a senior BoxLang code reviewer. Be specific, constructive, and use emoji for clarity." )
+    .user( "Please review this BoxLang function and suggest improvements:" )
+    .user( "function greet( name ) { return 'Hello, ' & name & '!' }" )
+
+answer = aiChat( message.getMessages() )
+println( answer )

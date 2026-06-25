@@ -1,0 +1,28 @@
+/**
+{
+    "id": "002",
+    "category": "Basic Chatting",
+    "categorySlug": "basic-chatting",
+    "categoryIcon": "chat-circle",
+    "title": "Chat with Parameters",
+    "difficulty": "beginner",
+    "icon": "sliders",
+    "description": "Control temperature, model, and provider for precise AI behaviour.",
+    "guidance": "The second argument to aiChat() is a params struct that maps directly to the AI provider's API parameters.\n\n• temperature 0.0–0.3: Factual, deterministic responses (code, math, data)\n• temperature 0.5–0.7: Balanced general chat\n• temperature 0.8–1.0: Creative writing, brainstorming\n\nThe third argument is an options struct for BoxLang-specific settings like provider override and return format. This lets you switch between OpenAI, Claude, Gemini, or Ollama per call — great for A/B testing providers.",
+    "output": "BoxLang is a powerful choice for enterprise development for several key reasons:\n\n1. **JVM Foundation** — Runs on the battle-tested Java Virtual Machine, giving you access to the entire Java ecosystem while writing far less code.\n\n2. **Rapid Development** — Dynamic typing, closures, and functional programming constructs dramatically reduce boilerplate compared to pure Java.\n\n3. **Built-in Web Server** — The miniserver lets you go from idea to running web app in minutes.\n\n4. **CFML Compatibility** — Teams coming from ColdFusion or CFML can migrate incrementally.\n\n5. **BoxLang AI Module** — First-class AI integration lets you build intelligent features with a single function call.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/basic-chatting.md",
+    "provider": "claude"
+}
+*/
+
+answer = aiChat(
+    "List the top 5 reasons BoxLang is a great choice for enterprise development.",
+    {
+        model      : "claude-3-5-sonnet-20241022",
+        temperature: 0.3,
+        max_tokens : 500
+    },
+    { provider: "claude" }
+)
+
+println( answer )

@@ -1,0 +1,51 @@
+/**
+{
+    "id": "011",
+    "category": "Structured Output",
+    "categorySlug": "structured-output",
+    "categoryIcon": "brackets-curly",
+    "title": "Array of Objects",
+    "difficulty": "intermediate",
+    "icon": "list-numbers",
+    "description": "Extract multiple structured records from a single AI call as a typed array.",
+    "guidance": "Wrap a schema instance in an array [ new MyClass() ] and aiChat() will return an array of populated instances. This is incredibly powerful for batch extraction tasks.\n\nCommon use cases:\n• Parse a freeform email into a list of action items\n• Extract all entities (people, places, dates) from a document\n• Generate a structured to-do list from a description\n• Convert CSV-like text into typed records\n\nThe AI will determine how many items to return based on the content. You don't specify a count — you just define the shape of one item and the AI returns as many as the context requires.\n\nPair this with aiPopulate() when you already have the data as JSON or a struct and just want to hydrate a typed object.",
+    "output": "Sprint Tasks (4 items):\n\n[HIGH]   Design AI chat component UI                   4.0 hrs\n[HIGH]   Integrate aiChatStream() in API endpoint      6.0 hrs\n[MEDIUM] Write unit tests for memory module            3.0 hrs\n[LOW]    Update documentation for new AI features      2.0 hrs\n\nTotal estimated: 15.0 hours",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/structured-output.md",
+    "provider": "openai"
+}
+*/
+
+// models/Task.bx
+// class Task {
+//     property name="title"          type="string";
+//     property name="priority"       type="string";
+//     property name="estimatedHours" type="numeric";
+// }
+
+sprintDescription = "
+    We need to: design the AI chat component UI (high priority, ~4 hours),
+    integrate streaming responses in the API endpoint (high, ~6 hours),
+    write unit tests for the memory module (medium, ~3 hours),
+    and update docs for the new AI features (low, ~2 hours).
+"
+
+// Wrap schema in an array — AI returns an array of Task instances
+tasks = aiChat(
+    "Extract all tasks from this sprint description:\n#sprintDescription#",
+    { returnFormat: [ new models.Task() ] }
+)
+
+println( "Sprint Tasks (#tasks.len()# items):" )
+println( "" )
+
+totalHours = 0
+for ( task in tasks ) {
+    priority = task.getPriority().uCase().lJustify( 6 )
+    title    = task.getTitle().lJustify( 45 )
+    hours    = task.getEstimatedHours()
+    println( "[#priority#] #title# #hours# hrs" )
+    totalHours += hours
+}
+
+println( "" )
+println( "Total estimated: #totalHours# hours" )

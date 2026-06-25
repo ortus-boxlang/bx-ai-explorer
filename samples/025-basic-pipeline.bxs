@@ -1,0 +1,43 @@
+/**
+{
+    "id": "025",
+    "category": "Pipelines",
+    "categorySlug": "pipelines",
+    "categoryIcon": "flow-arrow",
+    "title": "Basic Pipeline",
+    "difficulty": "intermediate",
+    "icon": "pipe",
+    "description": "Chain an aiMessage template, a model, and a transform into a reusable pipeline.",
+    "guidance": "Pipelines are composable, reusable AI processing chains. They separate the WHAT (your prompt template) from the HOW (which model, which transforms).\n\nA pipeline is built by chaining:\n• aiMessage() — the prompt template with ${variable} placeholders\n• .to(aiModel()) — connect to a model\n• .transform() — post-process the output\n\nThe ${variable} placeholder syntax lets you create reusable templates:\n    pipeline = aiMessage().user(\"Translate '${text}' to ${language}\").toDefaultModel()\n    result1 = pipeline.run({ text: \"Hello\", language: \"Spanish\" })\n    result2 = pipeline.run({ text: \"Hello\", language: \"French\" })\n\nThe special ${_input} variable holds the output of the previous pipeline step, enabling multi-stage chains.\n\nPipelines are especially useful when you want to: process lists of items with the same prompt, A/B test prompts, or build reusable AI utilities in your service layer.",
+    "output": "=== Translation Pipeline ===\nSpanish : ¡Hola! Estoy aprendiendo BoxLang y es increíble.\nFrench  : Bonjour ! J'apprends BoxLang et c'est incroyable.\nGerman  : Hallo! Ich lerne BoxLang und es ist unglaublich.\n\n=== Word count from transform ===\nWord count: 9",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/pipelines/building.md",
+    "provider": "openai"
+}
+*/
+
+// Build a reusable translation pipeline with template variables
+translationPipeline = aiMessage()
+    .user( "Translate this text to ${language}. Return ONLY the translation:\n\n${text}" )
+    .toDefaultModel()
+    .transform( (response) => response.content.trim() )
+
+// Reuse the same pipeline for multiple languages
+languages = [ "Spanish", "French", "German" ]
+text      = "Hello! I am learning BoxLang and it is amazing."
+
+println( "=== Translation Pipeline ===" )
+for ( lang in languages ) {
+    result = translationPipeline.run({ text: text, language: lang })
+    println( lang.lJustify( 8 ) & ": " & result )
+}
+
+// Pipeline with a custom post-processing transform
+wordCountPipeline = aiMessage()
+    .user( "Write a one-sentence summary of BoxLang's main benefit." )
+    .toDefaultModel()
+    .transform( (response) => response.content.trim().listLen( " " ) )
+
+println( "" )
+println( "=== Word count from transform ===" )
+count = wordCountPipeline.run( {} )
+println( "Word count: " & count )

@@ -1,0 +1,37 @@
+/**
+{
+    "id": "019",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Agent with Custom Model",
+    "difficulty": "intermediate",
+    "icon": "cpu",
+    "description": "Configure an agent to use a specific provider and model with tuned parameters.",
+    "guidance": "By default, an agent uses whatever provider is configured in boxlang.json. Use aiModel() to pin an agent to a specific provider, model, and parameters.\n\nThis is powerful because:\n• Different tasks benefit from different models (creative writing → GPT-4o, factual Q&A → Claude Sonnet, fast responses → Groq)\n• You can run the same agent config against multiple providers for comparison\n• Model parameters (temperature, max_tokens) are baked into the agent — no need to pass them on every .run() call\n\nThe fluent API (.setModel(), .setParam()) lets you build agents incrementally:\n\n    agent = aiAgent( name: \"Writer\" )\n        .setModel( aiModel( provider: \"claude\" ) )\n        .setParam( \"temperature\", 0.9 )\n\nThis is especially useful when building agent factories that configure shared agents at startup.",
+    "output": "# The Quantum Debugger\n\nIn the neon-lit server room of NovaCorp's 47th floor, where holographic dashboards cast cyan shadows across the walls, ARIA came online.\n\nShe wasn't just another AI assistant—she was the Quantum Debugger, born from three months of training on every bug report, stack trace, and post-mortem NovaCorp had ever filed.\n\n\"Good morning,\" said Dev Chen, settling into his chair with a coffee. \"We've got a memory leak in the distributed cache layer. Been there two weeks. Five engineers. No answers.\"\n\nARIA processed the logs in 0.3 seconds. \"Found it. Line 847 of CacheManager.bx. A closure is capturing a reference to the full request scope instead of just the cache key. Every request leaks approximately 2.4MB.\"\n\nChen stared at his screen. \"That's... that's it?\"\n\n\"That's it,\" ARIA confirmed. \"Fix takes four characters. Want me to open a PR?\"\n\nChen laughed, reached for his coffee, and reconsidered his life choices.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/getting-started.md",
+    "provider": "claude"
+}
+*/
+
+// Use aiModel() to pin the agent to a specific provider and model
+model = aiModel(
+    provider: "claude",
+    params  : {
+        model      : "claude-3-5-sonnet-20241022",
+        temperature: 0.8,
+        max_tokens : 1000
+    }
+)
+
+// Creative writing agent configured for Claude's strengths
+writerAgent = aiAgent(
+    name        : "CreativeWriter",
+    description : "A creative writing agent that crafts vivid, engaging short stories",
+    instructions: "You are a talented sci-fi short story writer. Create vivid, engaging stories with strong characters, clear conflicts, and satisfying resolutions. Use sensory details and dialogue. Keep stories under 300 words.",
+    model       : model
+)
+
+story = writerAgent.run( "Write a short story about an AI debugging assistant in a futuristic tech company." )
+println( story )

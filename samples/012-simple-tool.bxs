@@ -1,0 +1,42 @@
+/**
+{
+    "id": "012",
+    "category": "AI Tools",
+    "categorySlug": "ai-tools",
+    "categoryIcon": "wrench",
+    "title": "Define a Simple Tool",
+    "difficulty": "intermediate",
+    "icon": "plug",
+    "description": "Give the AI a function it can call — connect AI reasoning to real data.",
+    "guidance": "AI Tools (also called Function Calling) let the model invoke your BoxLang code when it decides it needs real-world data. The AI decides WHEN to call the tool and WHAT arguments to pass — you just define what it does.\n\nFlow:\n1. You define a tool with aiTool(name, description, callback)\n2. You describe each parameter using fluent .describe{ArgName}() methods\n3. The AI receives the tool definition as part of its context\n4. When the AI needs the data, it calls your callback with the extracted arguments\n5. BoxLang AI sends the result back to the model\n6. The model incorporates the tool result into its final response\n\nThe description strings are critical — they're what the AI reads to understand when and how to use the tool. Be specific: 'City and country, e.g. Boston, MA' is better than 'a location'.",
+    "output": "The current weather in Boston, MA is:\n• Temperature: 72°F (22°C)\n• Condition: Partly Cloudy\n• Humidity: 58%\n• Wind: 12 mph NW\n\nIt's a pleasant day in Boston! You might want a light jacket if you're heading out this evening as temperatures are expected to drop to around 61°F.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/tools.md",
+    "provider": "openai"
+}
+*/
+
+// Define a tool: the AI can call this when it needs weather data
+weatherTool = aiTool(
+    "get_weather",
+    "Get the current weather conditions for a given location.",
+    ( args ) => {
+        // In a real app, call a weather API here
+        // Simulated response for this example:
+        return {
+            temperature: 72,
+            condition  : "Partly Cloudy",
+            humidity   : 58,
+            windSpeed  : 12,
+            windDir    : "NW",
+            unit       : "F"
+        }
+    }
+).describeLocation( "City and state/country, e.g. 'Boston, MA' or 'London, UK'" )
+
+// The AI will automatically invoke the tool when it needs weather data
+result = aiChat(
+    "What's the weather like in Boston today? Give me a friendly summary.",
+    { tools: [ weatherTool ] }
+)
+
+println( result )

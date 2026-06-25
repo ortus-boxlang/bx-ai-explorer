@@ -1,0 +1,513 @@
+<bx:script>
+    // ── Load and parse all .bxs sample files ─────────────────────────────
+    samplesDir = expandPath( "./samples" );
+    fileList   = directoryList( samplesDir, false, "query", "*.bxs", "name asc" );
+    allSamples = [];
+
+    for ( row in fileList ) {
+        filePath = samplesDir & "/" & row.name;
+        try {
+            content    = fileRead( filePath );
+            closingPos = content.find( "*/" );
+            if ( closingPos > 3 ) {
+                jsonStr = trim( mid( content, 4, closingPos - 4 ) );
+                meta    = deserializeJSON( jsonStr );
+                // Fix duplicate keys that crept into some sample files
+                if ( !structKeyExists( meta, "icon" ) ) { meta[ "icon" ] = "file-code"; }
+                meta[ "code" ]     = trim( mid( content, closingPos + 2, len( content ) ) );
+                meta[ "filename" ] = row.name;
+                allSamples.append( meta );
+            }
+        } catch( any e ) {
+            // Skip malformed files gracefully
+        }
+    }
+
+    // ── Build ordered category list ───────────────────────────────────────
+    categories = [];
+    seenCats   = {};
+    for ( s in allSamples ) {
+        slug = s.categorySlug;
+        if ( !seenCats.keyExists( slug ) ) {
+            categories.append({
+                slug : slug,
+                label: s.category,
+                icon : s.keyExists( "categoryIcon" ) ? s.categoryIcon : "folder"
+            });
+            seenCats[ slug ] = true;
+        }
+    }
+
+    samplesJSON    = serializeJSON( allSamples );
+    categoriesJSON = serializeJSON( categories );
+    totalSamples   = allSamples.len();
+    totalCats      = categories.len();
+</bx:script><!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoxLang AI Explorer</title>
+
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Highlight.js (atom-one-dark) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- Phosphor Icons Duotone -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/index.js"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/assets/css/explorer.css">
+
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+    <!-- Embedded sample data from server -->
+    <script>
+        window.__SAMPLES__    = <bx:output>#samplesJSON#</bx:output>;
+        window.__CATEGORIES__ = <bx:output>#categoriesJSON#</bx:output>;
+        window.__STATS__      = { samples: <bx:output>#totalSamples#</bx:output>, categories: <bx:output>#totalCats#</bx:output> };
+    </script>
+</head>
+<body>
+
+<div class="bxl-app" x-data="explorer()" x-init="init()">
+
+    <!-- ── Top Navbar ───────────────────────────────────────────────────── -->
+    <nav class="bxl-topbar">
+
+        <!-- Hamburger (mobile + sidebar toggle) -->
+        <button class="btn-icon" @click="sidebarOpen = !sidebarOpen" title="Toggle sidebar">
+            <i class="ph-duotone ph-sidebar-simple"></i>
+        </button>
+
+        <!-- Logo -->
+        <div class="bxl-logo-wrap">
+            <img x-show="darkMode"
+                 src="https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang-ai/SVG/boxlang-ai-logo-full-dark.svg"
+                 alt="BoxLang AI" class="bxl-logo-img"
+                 onerror="this.style.display='none'; document.getElementById('logo-fallback-dark').style.display='flex'">
+            <img x-show="!darkMode"
+                 src="https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang-ai/SVG/boxlang-ai-logo-full-light.svg"
+                 alt="BoxLang AI" class="bxl-logo-img"
+                 onerror="this.style.display='none'; document.getElementById('logo-fallback-light').style.display='flex'">
+            <!-- Fallback text logos -->
+            <div id="logo-fallback-dark" style="display:none; align-items:center; gap:0.5rem;" x-show="darkMode">
+                <img src="https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang/logo/SVG/boxlang-icon-full.svg" style="height:28px;" alt="">
+                <span style="font-size:1rem; font-weight:800; color:#00FF87; letter-spacing:-0.02em;">BoxLang <span style="color:#00BF63;">AI</span></span>
+            </div>
+            <div id="logo-fallback-light" style="display:none; align-items:center; gap:0.5rem;" x-show="!darkMode">
+                <img src="https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang/logo/SVG/boxlang-icon-full.svg" style="height:28px;" alt="">
+                <span style="font-size:1rem; font-weight:800; color:#007A3D; letter-spacing:-0.02em;">BoxLang <span style="color:#00BF63;">AI</span></span>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="bxl-search-wrap">
+            <i class="ph-duotone ph-magnifying-glass" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--bxl-text-muted);font-size:16px;pointer-events:none;"></i>
+            <input
+                type="text"
+                class="bxl-search"
+                placeholder="Search samples..."
+                x-model.debounce.250="searchQuery"
+                @input="selectedId = null"
+            >
+        </div>
+
+        <!-- Controls -->
+        <div class="bxl-controls">
+            <!-- Difficulty filter pills (desktop) -->
+            <div class="d-none d-md-flex gap-1">
+                <template x-for="d in ['all','beginner','intermediate','advanced','expert']">
+                    <button
+                        class="filter-pill"
+                        :class="{ active: activeDiff === d }"
+                        @click="activeDiff = d; selectedId = null"
+                        x-text="d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)"
+                    ></button>
+                </template>
+            </div>
+
+            <!-- Dark/light toggle -->
+            <button class="btn-icon" @click="toggleDarkMode()" :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'">
+                <i class="ph-duotone" :class="darkMode ? 'ph-sun' : 'ph-moon'"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="neon-divider"></div>
+
+    <!-- ── Body Layout ───────────────────────────────────────────────────── -->
+    <div class="bxl-layout">
+
+        <!-- ── Sidebar ──────────────────────────────────────────────────── -->
+        <aside class="bxl-sidebar" :class="{ collapsed: !sidebarOpen }">
+
+            <!-- Mobile difficulty filter -->
+            <div class="sidebar-filters d-md-none">
+                <template x-for="d in ['all','beginner','intermediate','advanced','expert']">
+                    <button
+                        class="filter-pill"
+                        :class="{ active: activeDiff === d }"
+                        @click="activeDiff = d; selectedId = null"
+                        x-text="d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)"
+                    ></button>
+                </template>
+            </div>
+
+            <div class="sidebar-scroll">
+                <template x-for="cat in categories" :key="cat.slug">
+                    <div class="cat-group" x-show="groupedFiltered[cat.slug]?.length > 0">
+
+                        <!-- Category header -->
+                        <div class="cat-header" @click="toggleCat(cat.slug)">
+                            <i class="ph-duotone" :class="'ph-' + cat.icon" style="font-size:14px;"></i>
+                            <span x-text="cat.label"></span>
+                            <span class="cat-count" x-text="groupedFiltered[cat.slug]?.length ?? 0"></span>
+                            <i class="ph-duotone ph-caret-right cat-chevron" :class="{ open: openCats[cat.slug] !== false }"></i>
+                        </div>
+
+                        <!-- Samples in this category -->
+                        <div x-show="openCats[cat.slug] !== false">
+                            <template x-for="s in (groupedFiltered[cat.slug] ?? [])" :key="s.id">
+                                <div
+                                    class="sample-item"
+                                    :class="{ active: selectedId === s.id }"
+                                    @click="selectSample(s.id)"
+                                >
+                                    <span class="diff-dot" :class="s.difficulty"></span>
+                                    <span class="sample-item-title" x-text="s.title"></span>
+                                </div>
+                            </template>
+                        </div>
+
+                    </div>
+                </template>
+
+                <!-- Empty state -->
+                <div x-show="filteredSamples.length === 0" style="padding:2rem 1rem; text-align:center; color:var(--bxl-text-muted); font-size:0.8rem;">
+                    <i class="ph-duotone ph-magnifying-glass" style="font-size:32px; display:block; margin-bottom:0.75rem; opacity:0.4;"></i>
+                    No samples match your search.
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Main Content ──────────────────────────────────────────────── -->
+        <main class="bxl-main">
+
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" x-show="!selected" x-cloak>
+
+                <div class="welcome-hero">
+                    <img
+                        :src="darkMode
+                            ? 'https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang-ai/SVG/boxlang-ai-logo-full-dark.svg'
+                            : 'https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang-ai/SVG/boxlang-ai-logo-full-light.svg'"
+                        alt="BoxLang AI" class="welcome-logo"
+                        onerror="this.src='https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang/logo/SVG/boxlang-icon-full.svg'"
+                    >
+                    <h1 class="welcome-title">BoxLang AI Explorer</h1>
+                    <p class="welcome-subtitle">
+                        A guided collection of BoxLang AI code samples — from your first <code style="color:var(--bxl-green)">aiChat()</code> call
+                        all the way to multi-agent hierarchies and RAG systems.
+                    </p>
+
+                    <div class="welcome-stats">
+                        <div class="stat-item">
+                            <div class="stat-num" x-text="stats.samples"></div>
+                            <div class="stat-label">Samples</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-num" x-text="stats.categories"></div>
+                            <div class="stat-label">Categories</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-num">5</div>
+                            <div class="stat-label">Providers</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category cards -->
+                <div class="category-grid">
+                    <template x-for="cat in categories" :key="cat.slug">
+                        <div class="cat-card" @click="filterToCategory(cat.slug)">
+                            <i class="ph-duotone cat-card-icon" :class="'ph-' + cat.icon"></i>
+                            <div class="cat-card-name" x-text="cat.label"></div>
+                            <div class="cat-card-count" x-text="(groupedFiltered[cat.slug]?.length ?? 0) + ' samples'"></div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Difficulty legend -->
+                <div class="diff-legend">
+                    <div class="diff-legend-item"><span class="diff-dot beginner"></span> Beginner</div>
+                    <div class="diff-legend-item"><span class="diff-dot intermediate"></span> Intermediate</div>
+                    <div class="diff-legend-item"><span class="diff-dot advanced"></span> Advanced</div>
+                    <div class="diff-legend-item"><span class="diff-dot expert"></span> Expert</div>
+                </div>
+
+                <p style="margin-top:2rem; font-size:0.8rem; color:var(--bxl-text-dim);">
+                    Pick a category above or search for a topic. Each sample includes guidance, source code, and expected output.
+                </p>
+            </div>
+
+            <!-- Sample Detail -->
+            <div class="sample-detail" x-show="selected" x-cloak>
+
+                <!-- Breadcrumb + action bar -->
+                <div class="sample-topbar">
+                    <span class="breadcrumb-item">
+                        <a href="#" @click.prevent="selectedId = null" style="color:var(--bxl-green);text-decoration:none;">
+                            <i class="ph-duotone ph-house" style="font-size:13px;"></i> Explorer
+                        </a>
+                    </span>
+                    <span class="breadcrumb-sep">/</span>
+                    <span class="breadcrumb-item" x-text="selected?.category"></span>
+                    <span class="breadcrumb-sep">/</span>
+                    <span class="breadcrumb-item" style="color:var(--bxl-text);" x-text="selected?.title"></span>
+
+                    <div class="sample-topbar-actions">
+                        <a :href="selected?.docsUrl" target="_blank" class="btn-docs">
+                            <i class="ph-duotone ph-book-open-text"></i>
+                            Docs
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Header -->
+                <div class="sample-header">
+                    <h1 class="sample-title" x-text="selected?.title"></h1>
+                    <div class="sample-badges">
+                        <span class="badge-diff" :class="selected?.difficulty" x-text="selected?.difficulty"></span>
+                        <span class="badge-provider">
+                            <i class="ph-duotone ph-cpu" style="font-size:11px;"></i>
+                            <span x-text="selected?.provider"></span>
+                        </span>
+                        <span style="font-size:0.8rem; color:var(--bxl-text-muted); margin-left:0.5rem;" x-text="selected?.description"></span>
+                    </div>
+                </div>
+
+                <!-- Guidance card -->
+                <div class="guidance-card" x-show="selected?.guidance">
+                    <div class="guidance-label">
+                        <i class="ph-duotone ph-lightbulb" style="font-size:14px;"></i>
+                        Guidance
+                    </div>
+                    <div class="guidance-text" x-text="selected?.guidance"></div>
+                </div>
+
+                <!-- Side-by-side code + output panels -->
+                <div class="sample-panels">
+
+                    <!-- Code Panel -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <i class="ph-duotone ph-code" style="color:var(--bxl-green); font-size:15px;"></i>
+                            <span class="panel-title">BoxLang Code</span>
+                            <span class="panel-lang-tag">
+                                <i class="ph-duotone ph-file-code" style="font-size:10px;"></i>
+                                .bxs
+                            </span>
+                            <button class="btn-copy ms-2" @click="copyCode()" :class="{ copied: copied }">
+                                <i class="ph-duotone" :class="copied ? 'ph-check' : 'ph-copy'"></i>
+                                <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+                            </button>
+                        </div>
+                        <div class="code-scroll">
+                            <pre><code id="code-block" class="language-javascript"></code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="panel output-panel">
+                        <div class="panel-header">
+                            <div class="output-dots">
+                                <span class="dot-red"></span>
+                                <span class="dot-yellow"></span>
+                                <span class="dot-green"></span>
+                            </div>
+                            <span class="panel-title">Expected Output</span>
+                            <i class="ph-duotone ph-terminal" style="color:var(--bxl-green-neon); font-size:15px;"></i>
+                        </div>
+                        <div class="output-scroll" x-text="selected?.output ?? ''">
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Prev / Next nav -->
+                <div class="sample-nav">
+                    <button class="btn-nav"
+                        @click="prevSample()"
+                        :disabled="prevDisabled">
+                        <i class="ph-duotone ph-caret-left"></i>
+                        <span x-text="prevLabel">Previous</span>
+                    </button>
+
+                    <div class="sample-nav-info">
+                        <span x-text="currentIndex + 1"></span>
+                        <span> of </span>
+                        <span x-text="filteredSamples.length"></span>
+                        <span> samples</span>
+                    </div>
+
+                    <button class="btn-nav"
+                        @click="nextSample()"
+                        :disabled="nextDisabled">
+                        <span x-text="nextLabel">Next</span>
+                        <i class="ph-duotone ph-caret-right"></i>
+                    </button>
+                </div>
+
+            </div>
+        </main>
+
+    </div><!-- /.bxl-layout -->
+</div><!-- /.bxl-app -->
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function explorer() {
+    return {
+        samples       : window.__SAMPLES__    || [],
+        categories    : window.__CATEGORIES__ || [],
+        stats         : window.__STATS__      || { samples: 0, categories: 0 },
+        selectedId    : null,
+        searchQuery   : '',
+        activeDiff    : 'all',
+        darkMode      : true,
+        sidebarOpen   : true,
+        copied        : false,
+        openCats      : {},   // track collapsed categories
+
+        /* ── Computed ── */
+        get selected() {
+            return this.samples.find(s => s.id === this.selectedId) || null;
+        },
+
+        get filteredSamples() {
+            const q = this.searchQuery.toLowerCase().trim();
+            return this.samples.filter(s => {
+                const diffOk = this.activeDiff === 'all' || s.difficulty === this.activeDiff;
+                const qOk    = !q ||
+                    s.title.toLowerCase().includes(q) ||
+                    s.description.toLowerCase().includes(q) ||
+                    s.category.toLowerCase().includes(q) ||
+                    (s.guidance || '').toLowerCase().includes(q);
+                return diffOk && qOk;
+            });
+        },
+
+        get groupedFiltered() {
+            const grouped = {};
+            for (const cat of this.categories) {
+                grouped[cat.slug] = this.filteredSamples.filter(s => s.categorySlug === cat.slug);
+            }
+            return grouped;
+        },
+
+        get currentIndex() {
+            return this.filteredSamples.findIndex(s => s.id === this.selectedId);
+        },
+        get prevDisabled() { return this.currentIndex <= 0; },
+        get nextDisabled() { return this.currentIndex >= this.filteredSamples.length - 1; },
+        get prevLabel() {
+            const idx = this.currentIndex;
+            return idx > 0 ? this.filteredSamples[idx - 1].title : 'Previous';
+        },
+        get nextLabel() {
+            const idx = this.currentIndex;
+            return idx < this.filteredSamples.length - 1 ? this.filteredSamples[idx + 1].title : 'Next';
+        },
+
+        /* ── Methods ── */
+        init() {
+            // Restore dark mode preference
+            const saved = localStorage.getItem('bxl-dark');
+            if (saved !== null) {
+                this.darkMode = saved === 'true';
+                document.documentElement.setAttribute('data-bs-theme', this.darkMode ? 'dark' : 'light');
+            }
+            // Open all categories by default
+            for (const cat of this.categories) {
+                this.openCats[cat.slug] = true;
+            }
+            // Keyboard navigation
+            document.addEventListener('keydown', e => {
+                if (!this.selected) return;
+                if (e.key === 'ArrowRight' && !e.ctrlKey) { e.preventDefault(); this.nextSample(); }
+                if (e.key === 'ArrowLeft'  && !e.ctrlKey) { e.preventDefault(); this.prevSample(); }
+                if (e.key === 'Escape') { this.selectedId = null; }
+            });
+        },
+
+        selectSample(id) {
+            this.selectedId = id;
+            this.$nextTick(() => {
+                this.highlightCode();
+                // Scroll main to top
+                const main = document.querySelector('.bxl-main');
+                if (main) main.scrollTop = 0;
+                // Scroll sidebar item into view
+                const active = document.querySelector('.sample-item.active');
+                if (active) active.scrollIntoView({ block: 'nearest' });
+            });
+        },
+
+        highlightCode() {
+            const el = document.getElementById('code-block');
+            if (!el || !this.selected) return;
+            el.removeAttribute('data-highlighted');
+            el.textContent = this.selected.code || '';
+            hljs.highlightElement(el);
+        },
+
+        copyCode() {
+            if (!this.selected) return;
+            navigator.clipboard.writeText(this.selected.code || '').then(() => {
+                this.copied = true;
+                setTimeout(() => this.copied = false, 2000);
+            });
+        },
+
+        toggleDarkMode() {
+            this.darkMode = !this.darkMode;
+            document.documentElement.setAttribute('data-bs-theme', this.darkMode ? 'dark' : 'light');
+            localStorage.setItem('bxl-dark', String(this.darkMode));
+            this.$nextTick(() => this.highlightCode());
+        },
+
+        toggleCat(slug) {
+            this.openCats[slug] = this.openCats[slug] === false ? true : false;
+        },
+
+        filterToCategory(slug) {
+            // Jump to first sample in category
+            const first = this.samples.find(s => s.categorySlug === slug);
+            if (first) this.selectSample(first.id);
+        },
+
+        prevSample() {
+            const idx = this.currentIndex;
+            if (idx > 0) this.selectSample(this.filteredSamples[idx - 1].id);
+        },
+
+        nextSample() {
+            const idx = this.currentIndex;
+            if (idx < this.filteredSamples.length - 1) this.selectSample(this.filteredSamples[idx + 1].id);
+        }
+    }
+}
+</script>
+
+<!-- Hide Alpine cloak -->
+<style>[x-cloak] { display: none !important; }</style>
+
+</body>
+</html>

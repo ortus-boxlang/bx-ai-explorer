@@ -1,0 +1,59 @@
+/**
+{
+    "id": "030",
+    "category": "Multi-Agent Systems",
+    "categorySlug": "multi-agent",
+    "categoryIcon": "graph",
+    "title": "Orchestrator + Specialists",
+    "difficulty": "advanced",
+    "icon": "tree-structure",
+    "description": "An orchestrator agent delegates tasks to specialist sub-agents automatically.",
+    "guidance": "Multi-agent systems let you break complex tasks into specialist roles. The orchestrator acts as a router — it receives the user's request and decides which specialist(s) to engage.\n\nHow it works:\n1. The user's request goes to the orchestrator\n2. The orchestrator's instructions tell it which sub-agents exist and what each does\n3. The orchestrator calls the right sub-agent(s) — or handles simple queries itself\n4. Results are synthesized into a unified response\n\nSub-agents are defined independently and attached via the subAgents parameter. Each sub-agent can have its own tools, memory, and model.\n\nDesign tips:\n• Give each sub-agent a clear, non-overlapping specialization\n• The orchestrator's description should clearly enumerate when to use each sub-agent\n• Sub-agents can themselves have sub-agents (see Three-Level Hierarchy sample 031)\n• Add memory to the orchestrator to track what was delegated",
+    "output": "Analyzing your request — routing to specialists...\n\n[MathAgent] The integral of x² from 0 to 3 is:\n∫₀³ x² dx = [x³/3]₀³ = (27/3) - (0/3) = 9\n\n[CodeAgent] Here's a BoxLang function to compute definite integrals numerically:\n\n    numeric function integrate( f, a, b, steps = 1000 ) {\n        h = ( b - a ) / steps\n        sum = 0\n        for ( var i = 0; i < steps; i++ ) {\n            x = a + ( i + 0.5 ) * h\n            sum += f( x )\n        }\n        return sum * h\n    }\n\n    // Usage:\n    result = integrate( (x) => x^2, 0, 3 )\n    println( result )  // ≈ 9.0\n\n[Orchestrator] Both specialists have responded. The mathematical answer is 9 (exact), and the BoxLang implementation above uses the midpoint Riemann sum method for numerical approximation.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/hierarchy.md",
+    "provider": "openai"
+}
+*/
+
+// Specialist agents — each is an expert in its domain
+mathAgent = aiAgent(
+    name        : "MathAgent",
+    description : "A mathematics expert that solves equations, calculus, and statistics problems",
+    instructions: "You are a mathematics professor. Show your work step-by-step. Use proper mathematical notation."
+)
+
+codeAgent = aiAgent(
+    name        : "CodeAgent",
+    description : "A BoxLang programming expert that writes, reviews, and explains code",
+    instructions: "You are a senior BoxLang developer. Always write clean, idiomatic BoxLang code with comments."
+)
+
+writingAgent = aiAgent(
+    name        : "WritingAgent",
+    description : "A technical writer that creates documentation, explanations, and content",
+    instructions: "You are a technical writer. Create clear, well-structured content with appropriate headings and examples."
+)
+
+// Orchestrator — receives all requests and routes to the right specialist
+orchestrator = aiAgent(
+    name        : "Orchestrator",
+    description : "Main coordinator that delegates to the right specialist",
+    instructions: "
+        You coordinate a team of specialists. For each user request, identify the best specialist(s):
+        - MathAgent: mathematical calculations, equations, statistics, calculus
+        - CodeAgent: programming questions, code examples, debugging, BoxLang syntax
+        - WritingAgent: documentation, explanations, content creation
+        Answer simple questions yourself. Delegate complex, domain-specific tasks to specialists.
+        After delegation, synthesize the results into a unified, clear response.
+    ",
+    subAgents   : [ mathAgent, codeAgent, writingAgent ]
+)
+
+println( "Analyzing your request — routing to specialists..." )
+println( "" )
+
+// The orchestrator automatically decides which sub-agent(s) to use
+response = orchestrator.run(
+    "Calculate the integral of x² from 0 to 3, then write a BoxLang function that computes it numerically."
+)
+println( response )

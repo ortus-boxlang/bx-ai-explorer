@@ -1,0 +1,40 @@
+/**
+{
+    "id": "003",
+    "category": "Basic Chatting",
+    "categorySlug": "basic-chatting",
+    "categoryIcon": "chat-circle",
+    "title": "Return Formats",
+    "difficulty": "beginner",
+    "icon": "arrows-split",
+    "description": "Control what aiChat() returns: string, JSON struct, or raw API response.",
+    "guidance": "aiChat() supports five return formats via the returnFormat option:\n\n• \"single\" (default) — Returns the AI's reply as a plain string. Perfect for most use cases.\n• \"json\" — Instructs the AI to reply in JSON and auto-parses it into a BoxLang struct. Great for extracting structured data.\n• \"xml\" — Parses the response as XML into a BoxLang object.\n• \"all\" — Returns an array of all message objects (useful for multi-turn pipelines).\n• \"raw\" — Returns the full API response struct including usage stats, model info, and metadata.\n\nPro tip: For \"json\" format, make your prompt explicit — 'Return ONLY valid JSON with keys: name, version, description' — to avoid the AI wrapping the JSON in markdown fences.",
+    "output": "--- single ---\nBoxLang 1.x\n\n--- json ---\nName   : BoxLang\nVersion: 1.0\nVendor : Ortus Solutions\nLicense: Apache 2.0\n\n--- raw ---\nModel : gpt-4o-2024-08-06\nTokens: 312",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/basic-chatting.md",
+    "provider": "openai"
+}
+*/
+
+// 1. Default: returns a plain string
+simple = aiChat( "What is the current stable version of BoxLang? Answer in 5 words or less." )
+println( "--- single ---" )
+println( simple )
+println( "" )
+
+// 2. json: auto-parses the response into a BoxLang struct
+data = aiChat(
+    "Return ONLY valid JSON (no markdown) with keys: name, version, vendor, license — describing BoxLang.",
+    { returnFormat: "json" }
+)
+println( "--- json ---" )
+println( "Name   : " & data.name )
+println( "Version: " & data.version )
+println( "Vendor : " & data.vendor )
+println( "License: " & data.license )
+println( "" )
+
+// 3. raw: full API response with metadata
+raw = aiChat( "Say: ready", { returnFormat: "raw" } )
+println( "--- raw ---" )
+println( "Model : " & raw.model )
+println( "Tokens: " & raw.usage.totalTokens )

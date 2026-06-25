@@ -1,0 +1,55 @@
+/**
+{
+    "id": "017",
+    "category": "Memory Systems",
+    "categorySlug": "memory-systems",
+    "categoryIcon": "brain",
+    "title": "Summary Memory",
+    "difficulty": "advanced",
+    "icon": "article",
+    "description": "Automatically compress older messages into a summary to handle long conversations.",
+    "guidance": "Long conversations hit the AI's context window limit. Summary memory solves this by automatically compressing older messages into a running summary while keeping the most recent messages verbatim.\n\nHow it works:\n1. You configure a summaryThreshold (e.g. 10 recent messages to keep verbatim)\n2. When history exceeds maxMessages, the oldest messages (beyond threshold) are summarized\n3. A special [SUMMARY] message is injected at the start of history\n4. Recent messages remain intact so context is still fresh\n\nKey config options:\n• maxMessages: Total messages before compression triggers\n• summaryThreshold: How many recent messages to preserve verbatim\n• summaryModel: Which model to use for summarization (use a fast/cheap model like gpt-4o-mini)\n• summaryProvider: Can use a different/cheaper provider for summaries\n\nThis is the right memory type for long customer support conversations, research assistants, or any scenario where history can grow unboundedly.",
+    "output": "=== After 15 messages, summary kicks in ===\n\n[SUMMARY] The user is a BoxLang developer building an e-commerce platform. They asked about: struct syntax (covered), array manipulation methods (covered), query functions (covered), and ORM vs. queryExecute trade-offs (covered). User prefers concise answers with code examples. They are using BoxLang 1.x with CommandBox.\n\n[Recent] User: How do I handle transactions in BoxLang?\n[Recent] AI: Use transaction { } blocks...\n\nConversation continues with full recent context + compressed older context.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/memory.md",
+    "provider": "openai"
+}
+*/
+
+// Summary memory compresses old messages automatically
+memory = aiMemory( "summary", {
+    maxMessages      : 20,       // total messages before compression
+    summaryThreshold : 8,        // keep 8 recent messages verbatim
+    summaryModel     : "gpt-4o-mini",  // cheap model for summaries
+    summaryProvider  : "openai"
+} )
+
+memory.add( aiMessage().system(
+    "You are a BoxLang expert. The user is building an e-commerce platform."
+) )
+
+// Simulate a long conversation — after 20 messages, older ones get summarized
+topics = [
+    "How do I create a struct in BoxLang?",
+    "What array methods are available?",
+    "How do I run a database query?",
+    "When should I use ORM vs queryExecute?",
+    "How do I handle exceptions in BoxLang?",
+    "What's the difference between var and local scope?",
+    "How do I read environment variables?",
+    "How do I handle transactions in BoxLang?"
+]
+
+function chat( userInput ) {
+    memory.add( aiMessage().user( userInput ) )
+    response = aiChat( memory.getAll() )
+    memory.add( aiMessage().assistant( response ) )
+    return response
+}
+
+for ( topic in topics ) {
+    println( "Q: " & topic )
+    response = chat( topic )
+    println( "A: " & left( response, 120 ) & "..." )
+    println( "   [Memory size: #memory.getAll().len()# messages]" )
+    println( "" )
+}

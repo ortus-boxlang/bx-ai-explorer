@@ -1,0 +1,37 @@
+/**
+{
+    "id": "010",
+    "category": "Structured Output",
+    "categorySlug": "structured-output",
+    "categoryIcon": "brackets-curly",
+    "title": "Class-Based Schema",
+    "difficulty": "intermediate",
+    "icon": "file-code",
+    "description": "Use a BoxLang class as the schema for structured AI output with getter/setter methods.",
+    "guidance": "Class-based schemas give you the full power of BoxLang's object model. Define a class with typed properties, and pass an instance as the returnFormat. The AI response is automatically deserialized into that class with working getters.\n\nAdvantages over struct templates:\n• Methods — add validation, formatting, computed properties\n• Type safety — property type hints are enforced\n• Reusability — share the same schema class across your app\n• IDE support — auto-complete on the returned object\n\nKeep schemas flat (avoid nested class properties). BoxLang AI handles nesting with struct values, but deeply nested class hierarchies can confuse the constraint system.\n\nNote: The class file must be accessible from the class path. In a miniserver app, place it alongside your .bxm files or in a classes/ subfolder.",
+    "output": "Name    : Jane Doe\nAge     : 32\nEmail   : jane.doe@example.com\nCountry : Canada\nSenior? : false",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/chatting/structured-output.md",
+    "provider": "claude"
+}
+*/
+
+// models/Person.bx
+// class Person {
+//     property name="name"    type="string";
+//     property name="age"     type="numeric";
+//     property name="email"   type="string";
+//     property name="country" type="string";
+// }
+
+// Pass a class instance as the schema — AI fills in the properties
+person = aiChat(
+    "Create a realistic fictional person profile for a software developer.",
+    { returnFormat: new models.Person() },
+    { provider: "claude" }
+)
+
+println( "Name    : " & person.getName() )
+println( "Age     : " & person.getAge() )
+println( "Email   : " & person.getEmail() )
+println( "Country : " & person.getCountry() )
+println( "Senior? : " & ( person.getAge() >= 65 ) )

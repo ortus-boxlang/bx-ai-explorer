@@ -1,0 +1,63 @@
+/**
+{
+    "id": "020",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Agent with Tools",
+    "difficulty": "intermediate",
+    "icon": "robot",
+    "description": "Equip an agent with tools so it can take actions, not just generate text.",
+    "guidance": "Adding tools transforms an agent from a text generator into an autonomous actor. The agent can now interact with your systems, APIs, and data — deciding on its own when to call which tool.\n\nThe agent handles the full tool-calling loop internally:\n1. Receives the user's request\n2. Decides which tool(s) to call and with what arguments\n3. Executes the tools\n4. Synthesizes the results into a response\n5. Repeats if more tool calls are needed\n\nThis is what separates a simple chatbot from an AI agent: the ability to take actions in the world.\n\nAgent + Tools pattern checklist:\n✓ Each tool has a clear, specific description\n✓ Tool parameter descriptions use examples ('e.g., ORD-12345')\n✓ Tools return structs (not raw strings) so the AI can extract specific fields\n✓ Error cases return { error: true, message: '...' } so the AI can handle failures gracefully",
+    "output": "I've looked up order ORD-9871 for you.\n\n**Order Details:**\n- Status: In Transit 🚚\n- Items: BoxLang Developer Guide (×2), Ortus T-Shirt (×1)\n- Total: $89.97\n- Estimated Delivery: Tomorrow by 8 PM\n- Carrier: FedEx — Tracking: 794644792798\n\nYour order is on track! It left the Chicago distribution center this morning and is currently 142 miles from your delivery address. Is there anything else I can help you with?",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/getting-started.md",
+    "provider": "openai"
+}
+*/
+
+// Tool: look up an order by ID
+orderTool = aiTool(
+    "get_order",
+    "Look up an order by its ID to get status, items, and delivery info.",
+    ( args ) => {
+        // Simulate database lookup
+        return {
+            orderId         : args.orderId,
+            status          : "In Transit",
+            items           : [ "BoxLang Developer Guide (×2)", "Ortus T-Shirt (×1)" ],
+            total           : 89.97,
+            estimatedDelivery: "Tomorrow by 8 PM",
+            trackingNumber  : "794644792798",
+            carrier         : "FedEx",
+            milesAway       : 142
+        }
+    }
+).describeOrderId( "The order ID, e.g. 'ORD-12345'" )
+
+// Tool: process a refund request
+refundTool = aiTool(
+    "request_refund",
+    "Initiate a refund request for an order.",
+    ( args ) => {
+        return {
+            refundId  : "REF-" & randRange( 1000, 9999 ),
+            status    : "Approved",
+            amount    : args.amount,
+            eta       : "3-5 business days"
+        }
+    }
+)
+    .describeOrderId( "The order ID to refund" )
+    .describeAmount( "Refund amount in USD" )
+    .describeReason( "Reason for refund" )
+
+// Customer support agent with order management capabilities
+supportAgent = aiAgent(
+    name        : "CustomerSupport",
+    description : "Customer support agent for order inquiries and refunds",
+    instructions: "You are a friendly customer support agent. Help customers with order status and refund requests. Always be empathetic and solution-focused.",
+    tools       : [ orderTool, refundTool ]
+)
+
+response = supportAgent.run( "Can you check on my order ORD-9871? I ordered some BoxLang books." )
+println( response )

@@ -1,0 +1,53 @@
+/**
+{
+    "id": "023",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Agent Skills",
+    "difficulty": "advanced",
+    "icon": "sparkle",
+    "description": "Load reusable AI Skills from markdown files to give agents specialized expertise.",
+    "guidance": "Skills are markdown files stored in your project's .ai/skills/ directory. They describe expertise, tone, rules, and knowledge that the agent should apply.\n\nTwo types of skills:\n• Always-on skills (skills param) — always injected into the agent's context. Use for core persona, tone guidelines, safety rules.\n• Available skills (availableSkills param) — lazily loaded only when the agent decides it needs them. Great for domain-specific knowledge (SQL optimization, security review, language-specific coding style).\n\nA skill file (SKILL.md) structure:\n---\nname: SQL Optimizer\ndescription: Expert at writing and optimizing SQL queries\n---\n# SQL Optimization Expert\nYou are an expert SQL query optimizer...\n\nSkills are powerful because they:\n• Can be shared across multiple agents\n• Can be version-controlled and updated independently\n• Enable lazy loading — agents only consume tokens for skills they actually need\n• Allow non-developers to define agent behavior via markdown",
+    "output": "Code Review — security-reviewer skill activated:\n\n⚠️ **SECURITY ISSUE DETECTED** (High Severity)\n\nLine 4: SQL Injection Vulnerability\n```\n// ❌ DANGEROUS — user input directly in query\nquery = queryExecute(\"SELECT * FROM users WHERE name = '\" & request.name & \"'\")\n\n// ✅ SAFE — use parameterized queries\nquery = queryExecute(\n    \"SELECT * FROM users WHERE name = :name\",\n    { name: { value: request.name, cfsqltype: \"CF_SQL_VARCHAR\" } }\n)\n```\n\nAdditional Notes:\n- No input validation before use\n- Error messages may expose schema info\n- Consider adding rate limiting to this endpoint\n\nRisk Level: 🔴 HIGH — Fix before deploying to production.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/skills.md",
+    "provider": "claude"
+}
+*/
+
+// Always-on skills — injected into every agent interaction
+coreSkills = [
+    aiSkill(
+        name       : "professional-tone",
+        description: "Maintain a professional, constructive tone in all responses",
+        content    : "Always be professional, direct, and constructive. Use technical terminology appropriately. Format code examples in fenced code blocks."
+    ),
+    aiSkill(
+        name       : "boxlang-expert",
+        description: "Deep BoxLang language expertise",
+        content    : "You have deep expertise in BoxLang syntax, best practices, the bx-ai module, CommandBox, and the Ortus ecosystem. Always recommend BoxLang idioms over verbose Java alternatives."
+    )
+]
+
+// Available skills — agent loads these on-demand when the task needs them
+specialistSkills = aiSkill( ".ai/skills" )  // loads all skills in the directory
+
+// Code review agent with core skills always active + specialist skills on demand
+reviewAgent = aiAgent(
+    name           : "CodeReviewer",
+    description    : "Expert BoxLang code reviewer",
+    instructions   : "Review BoxLang code for correctness, security, and best practices. Use your specialist skills when relevant.",
+    skills         : coreSkills,
+    availableSkills: specialistSkills,
+    model          : aiModel( provider: "claude", params: { model: "claude-3-5-sonnet-20241022" } )
+)
+
+// The agent will auto-activate the security-reviewer skill for this prompt
+code = "
+    name = request.name
+    query = queryExecute(\"SELECT * FROM users WHERE name = '\" & name & \"'\")
+    return query
+"
+
+response = reviewAgent.run( "Review this BoxLang code for security issues:\n#code#" )
+println( response )

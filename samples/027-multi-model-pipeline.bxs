@@ -1,0 +1,60 @@
+/**
+{
+    "id": "027",
+    "category": "Pipelines",
+    "categorySlug": "pipelines",
+    "categoryIcon": "flow-arrow",
+    "title": "Multi-Model Pipeline",
+    "difficulty": "advanced",
+    "icon": "intersect-three",
+    "description": "Route different stages to different AI providers — use each model's strengths.",
+    "guidance": "Different AI models excel at different tasks. Multi-model pipelines let you route each stage to the most appropriate (or cost-effective) model.\n\nCommon model routing strategies:\n• GPT-4o → Complex reasoning, coding, structured output\n• Claude Sonnet → Writing quality, nuance, long context\n• Gemini Flash → Fast, cheap first-pass processing\n• GPT-4o-mini / Claude Haiku → Summarization, simple transforms\n• Groq (Llama) → Ultra-fast inference when latency matters\n\nExample workflow for processing customer feedback:\n1. Gemini Flash (fast, cheap) → Classify: bug report / feature request / praise\n2. GPT-4o (smart) → Extract structured data and severity\n3. Claude Sonnet (great writer) → Draft a personalized response\n\nThis pattern can dramatically reduce costs — only the stages that need a premium model use one.",
+    "output": "=== Analyzing customer feedback... ===\n\n[Stage 1 — Gemini: Classification]\nType: Bug Report | Severity: High | Category: Performance\n\n[Stage 2 — OpenAI: Structured Extraction]\n{\n  \"issueType\": \"Performance\",\n  \"severity\": \"high\",\n  \"component\": \"file upload\",\n  \"affectedUsers\": \"all\",\n  \"suggestedPriority\": \"P1\"\n}\n\n[Stage 3 — Claude: Customer Response Draft]\nDear valued customer,\n\nThank you for taking the time to report this issue with file uploads. We've identified this as a high-priority performance problem and have assigned it to our engineering team immediately.\n\nWe expect to have a fix deployed within 48 hours. We'll notify you directly once the issue is resolved and will apply a credit to your account for the inconvenience.\n\nThank you for helping us improve BoxLang!\n\nBest regards,\nThe Ortus Support Team",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/pipelines/multi-model.md",
+    "provider": "openai"
+}
+*/
+
+feedback = "Your file upload feature is incredibly slow! It takes over 2 minutes to upload a 5MB file and sometimes just fails completely. This is making our whole team unproductive. Please fix this ASAP."
+
+println( "=== Analyzing customer feedback... ===" )
+println( "" )
+
+// Stage 1: Gemini Flash — fast, cheap classification
+classifyModel = aiModel( provider: "gemini", params: { model: "gemini-2.0-flash", temperature: 0 } )
+classification = aiMessage()
+    .user( "Classify this feedback in one line — Type (Bug/Feature/Praise), Severity (Low/Medium/High), Category: ${feedback}" )
+    .to( classifyModel )
+    .transform( (r) => r.content.trim() )
+    .run({ feedback: feedback })
+
+println( "[Stage 1 — Gemini: Classification]" )
+println( classification )
+println( "" )
+
+// Stage 2: OpenAI — structured data extraction
+extractModel = aiModel( provider: "openai", params: { model: "gpt-4o-mini", temperature: 0 } )
+template = { issueType: "", severity: "", component: "", affectedUsers: "", suggestedPriority: "" }
+
+extracted = aiMessage()
+    .user( "Extract structured data from this feedback: ${feedback}" )
+    .to( extractModel )
+    .run({ feedback: feedback }, { returnFormat: template })
+
+println( "[Stage 2 — OpenAI: Structured Extraction]" )
+for ( key in extracted.keyArray().sort("text") ) {
+    println( "  " & key & ": " & extracted[ key ] )
+}
+println( "" )
+
+// Stage 3: Claude — write a warm, professional customer response
+claudeModel = aiModel( provider: "claude", params: { model: "claude-3-5-sonnet-20241022", temperature: 0.7 } )
+response = aiMessage()
+    .system( "You write empathetic, professional customer support responses." )
+    .user( "Write a response to this customer feedback. Acknowledge the issue, show urgency, give an ETA:\n\n${feedback}" )
+    .to( claudeModel )
+    .transform( (r) => r.content.trim() )
+    .run({ feedback: feedback })
+
+println( "[Stage 3 — Claude: Customer Response Draft]" )
+println( response )
