@@ -11,7 +11,7 @@
             closingPos = content.find( "*/" );
             if ( closingPos > 3 ) {
                 jsonStr = trim( mid( content, 4, closingPos - 4 ) );
-                meta    = deserializeJSON( jsonStr );
+                meta    = jsonDeserialize( jsonStr );
                 // Fix duplicate keys that crept into some sample files
                 if ( !structKeyExists( meta, "icon" ) ) { meta[ "icon" ] = "file-code"; }
                 meta[ "code" ]     = trim( mid( content, closingPos + 2, len( content ) ) );
@@ -38,8 +38,8 @@
         }
     }
 
-    samplesJSON    = serializeJSON( allSamples );
-    categoriesJSON = serializeJSON( categories );
+    samplesJSON    = jsonSerialize( allSamples );
+    categoriesJSON = jsonSerialize( categories );
     totalSamples   = allSamples.len();
     totalCats      = categories.len();
 </bx:script><!DOCTYPE html>
@@ -94,15 +94,6 @@
                  src="https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang-ai/SVG/boxlang-ai-logo-full-light.svg"
                  alt="BoxLang AI" class="bxl-logo-img"
                  onerror="this.style.display='none'; document.getElementById('logo-fallback-light').style.display='flex'">
-            <!-- Fallback text logos -->
-            <div id="logo-fallback-dark" style="display:none; align-items:center; gap:0.5rem;" x-show="darkMode">
-                <img src="https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang/logo/SVG/boxlang-icon-full.svg" style="height:28px;" alt="">
-                <span style="font-size:1rem; font-weight:800; color:#00FF87; letter-spacing:-0.02em;">BoxLang <span style="color:#00BF63;">AI</span></span>
-            </div>
-            <div id="logo-fallback-light" style="display:none; align-items:center; gap:0.5rem;" x-show="!darkMode">
-                <img src="https://raw.githubusercontent.com/Ortus-Solutions/ortus-artwork/refs/heads/main/boxlang/logo/SVG/boxlang-icon-full.svg" style="height:28px;" alt="">
-                <span style="font-size:1rem; font-weight:800; color:#007A3D; letter-spacing:-0.02em;">BoxLang <span style="color:#00BF63;">AI</span></span>
-            </div>
         </div>
 
         <!-- Search -->
