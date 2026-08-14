@@ -9,7 +9,7 @@ The samples cover chat, structured responses, streaming, async requests, tools, 
 - macOS, Linux, or Windows with a working Java installation supported by BoxLang
 - [BoxLang Version Manager (BVM)](https://boxlang.ortusbooks.com/getting-started/installation)
 - An API key for the provider you want to use
-- The `bx-ai` module available to your BoxLang installation
+- The `install-bx-module` command, provided by the BoxLang module development tooling
 
 The repository pins BoxLang `1.16.0` in `.bvmrc`.
 
@@ -21,6 +21,9 @@ From the repository root:
 # Install the version pinned by this repository, if needed
 bvm install 1.16.0
 bvm use
+
+# Install this checked-out bx-ai module into the local BoxLang environment
+install-bx-module bx-ai --local
 
 # Start BoxLang MiniServer
 bvm miniserver
@@ -67,6 +70,8 @@ and the default model is `gpt-5.4-mini`. Set `OPENAI_API_KEY` in `.env` or expor
 export OPENAI_API_KEY="your-api-key"
 ```
 
+Run `install-bx-module bx-ai --local` again after changing the module source and before testing those changes.
+
 The example environment file lists credentials for OpenAI, Anthropic/Claude, Gemini, DeepSeek, Grok, Groq, Perplexity, OpenRouter, Mistral, Hugging Face, Voyage, Cohere, and AWS providers. Only configure the providers you plan to use. Keep `.env` private and never commit API keys.
 
 ## Change the Default Provider or Model
@@ -109,6 +114,33 @@ bvm miniserver
 
 The explorer reads sample metadata from the JSON block at the beginning of each file. To add a sample, create a new `.bxs` file in [`samples/`](samples/) with a metadata block followed by executable BoxLang code. The filename sort order controls its position in the catalog.
 
+## Run an Example
+
+The explorer is a catalog and viewer. Run examples from a second terminal while MiniServer is running, or stop the server and run them from the repository root:
+
+```sh
+# Select the repository's BoxLang version
+bvm use
+
+# Load your provider credentials and select the checked-in configuration
+set -a
+. ./.env
+set +a
+export BOXLANG_CONFIG="./config/boxlang.json"
+
+# Run a sample directly
+boxlang samples/001-hello-ai.bxs
+```
+
+Replace `001-hello-ai.bxs` with any file in [`samples/`](samples/). For example:
+
+```sh
+boxlang samples/018-basic-agent.bxs
+boxlang samples/029-rag-system.bxs
+```
+
+The command executes the BoxLang source and prints its output in the terminal. Each sample's source can also be copied from the explorer with the **Copy** button and saved as a `.bxs` file for experimentation.
+
 ## Sample Requirements
 
 Most samples need only an AI provider key. Some examples require additional configuration:
@@ -141,6 +173,7 @@ Install BVM, then install and select the pinned runtime:
 bvm install 1.16.0
 bvm use
 boxlang --version
+install-bx-module bx-ai --local
 ```
 
 ### The page does not load
@@ -153,7 +186,13 @@ Check that the environment variable for the configured provider is exported in t
 
 ### The `bxai` module is missing
 
-Install or enable the `bx-ai` module using the BoxLang module workflow, then restart MiniServer. Refer to the [BoxLang AI documentation](https://ai.ortusbooks.com/) for provider and module setup details.
+Install the checked-out module into the local BoxLang environment, then restart MiniServer:
+
+```sh
+install-bx-module bx-ai --local
+```
+
+Refer to the [BoxLang AI documentation](https://ai.ortusbooks.com/) for provider and module setup details.
 
 ## Documentation
 
