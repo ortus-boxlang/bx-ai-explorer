@@ -1,5 +1,7 @@
 # BoxLang AI Explorer
 
+![BoxLang AI Explorer](boxlang-explorer.png)
+
 BoxLang AI Explorer is a local, browser-based catalog of BoxLang AI examples. It presents the `.bxs` files in `samples/` by category and difficulty, with guidance, source code, and sample output for each example.
 
 The samples cover chat, structured responses, streaming, async requests, tools, memory, agents, pipelines, RAG, orchestration, and MCP servers.
