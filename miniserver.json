@@ -2,5 +2,5 @@
     "host"      : "localhost",
     "port"      : 8080,
     "webRoot"   : ".",
-    "configFile": "boxlang.json"
+    "configFile": "config/boxlang.json"
 }

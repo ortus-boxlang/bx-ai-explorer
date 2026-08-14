@@ -1,0 +1,73 @@
+{
+    "modules": {
+        "bxai" :{
+            "settings" : {
+                // The default provider LLM AI: openai, deepseek, etc
+                //"provider" : "openrouter",
+				"provider" : "openai",
+                // The default request params to use when calling a provider, any provider
+                // Ex: { temperature: 0.5, max_tokens: 100, model: "gpt-3.5-turbo" }
+                // gpt-oss-120b
+                "defaultParams" : {
+					"model": "gpt-5.4-mini"
+                    //"model": "stepfun/step-3.5-flash"
+					//"model" : "openrouter/free"
+					//"model" : "openrouter/auto"
+                },
+                // The default memory to use when calling aiMemory()
+                "memory" : {
+                    "provider" : "window",
+                    "config" : {}
+                },
+                // This is used to configure default options and parameters for a specific provider
+                // The name of the key is the provider name, each provider can have its own params and options
+                "providers" : {
+					"claude" : {
+						"params": {
+							"model": "claude-sonnet-4-5"
+						}
+					}
+                },
+                // The default timeout of the ai requests
+                "timeout" : 30,
+                // If true, the AI request will be logged into the ai.log
+                "logRequest" : false,
+                // If true, the AI request will be logged to the console
+                "logRequestToConsole" : false,
+                // If true, the AI response will be logged into the ai.log
+                "logResponse" : false,
+                // If true, the AI response will be logged to the console
+                "logResponseToConsole" : false,
+                // The default return format of the AI response: single, all, raw
+                "returnFormat" : "single"
+            },
+			// --------------------------------------------------------------------------
+			// Skills Directory — Global Skill Auto-Discovery
+			// --------------------------------------------------------------------------
+			// Path to the directory scanned for SKILL.md files at module startup.
+			// Defaults to "/{webroot}/.agents/skills" — a vendor-neutral convention that works with
+			// any AI toolchain.  Can be absolute or relative (relative paths are
+			// expanded from the CWD).  Set to "" to disable auto-discovery entirely.
+			"skillsDirectory" : "/.agents/skills",
+
+			// When true, skills found in skillsDirectory are automatically loaded and injected
+			// into every agent created with aiAgent() as global / shared skills.
+			"autoLoadSkills" : true,
+
+			// Internal — populated by onLoad() with the globally discovered skills.
+			// Access via aiGlobalSkills() with no arguments, or read directly from settings.
+			"globalSkills" : [],
+
+			// --------------------------------------------------------------------------
+			// Audio Settings — Defaults for aiSpeak() / aiTranscribe() / aiTranslate()
+			// --------------------------------------------------------------------------
+			"audio" : {
+				"defaultVoice"              : "openai",
+				"defaultOutputFormat"       : "mp3",
+				// Uses the defaults from the provider config (e.g. model: gpt-4o-mini-tts) if not overridden here
+				"defaultSpeechModel"        : "",
+				"defaultTranscriptionModel" : ""
+			}
+        }
+    }
+}
