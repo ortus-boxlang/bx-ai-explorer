@@ -18,7 +18,7 @@
 answer = aiChat(
     "List the top 5 reasons BoxLang is a great choice for enterprise development.",
     {
-        model      : "claude-3-5-sonnet-20241022",
+        model      : "claude-sonnet-5",
         temperature: 0.3,
         max_tokens : 500
     },

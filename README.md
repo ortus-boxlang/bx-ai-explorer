@@ -4,7 +4,7 @@
 
 BoxLang AI Explorer is a local, browser-based catalog of BoxLang AI examples. It presents the `.bxs` files in `samples/` by category and difficulty, with guidance, source code, and sample output for each example.
 
-The samples cover chat, structured responses, streaming, async requests, tools, memory, agents, pipelines, RAG, orchestration, and MCP servers.
+The samples cover chat, structured responses, streaming, async requests, tools, memory, agents, pipelines, RAG, orchestration, MCP servers, image/speech/audio generation, middleware, reasoning, gateways, human-in-the-loop approvals, security guardrails, agent run control, and AWS Bedrock.
 
 ## Requirements
 
@@ -66,7 +66,7 @@ At minimum, configure the API key for the provider selected in `config/boxlang.j
 "provider": "openai"
 ```
 
-and the default model is `gpt-5.4-mini`. Set `OPENAI_API_KEY` in `.env` or export it directly in your shell:
+and the default model is `gpt-5.6-luna`. Set `OPENAI_API_KEY` in `.env` or export it directly in your shell:
 
 ```sh
 export OPENAI_API_KEY="your-api-key"
@@ -84,7 +84,7 @@ Edit [`config/boxlang.json`](config/boxlang.json):
 "settings": {
     "provider": "openai",
     "defaultParams": {
-        "model": "gpt-5.4-mini"
+        "model": "gpt-5.6-luna"
     }
 }
 ```
@@ -151,6 +151,12 @@ Most samples need only an AI provider key. Some examples require additional conf
 - `016-file-memory.bxs` writes conversation data to the path configured by the sample. Make sure the process can write there.
 - `028-document-loading.bxs` and `029-rag-system.bxs` may require local documents and an embeddings provider, respectively.
 - `032-mcp-server.bxs` demonstrates an MCP server and is intended to be run as a BoxLang script rather than used as a normal chat request.
+- `033-image-generation.bxs` writes generated images to `/tmp`. Make sure the process can write there, and that the selected provider (OpenAI by default) supports image generation.
+- `034-text-to-speech.bxs` and `035-speech-to-text.bxs` write/read audio files under `/tmp`. Make sure the process can write there.
+- `036-web-search-bif.bxs` runs offline against the default `http` provider (no API key), but its optional Brave example requires `BRAVE_API_KEY` (or another web search provider key) configured in the `bxai` settings.
+- `038-middleware-pipeline.bxs`, `042-gateways.bxs` through `047-security-output-guardrails.bxs`, and `048-agent-run-control.bxs` run fully offline against the built-in `mock` AI provider — no API key needed.
+- `045-decision-store.bxs` uses a CacheBox-backed decision store by default; no extra configuration needed to run it as-is.
+- `049-aws-bedrock.bxs` requires AWS credentials — either `AWS_BEARER_TOKEN_BEDROCK` (simplest, no request signing) or `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (and optionally `AWS_SESSION_TOKEN`) plus `AWS_REGION`.
 
 See the `guidance` metadata in each sample and the linked documentation shown in the explorer for sample-specific setup.
 

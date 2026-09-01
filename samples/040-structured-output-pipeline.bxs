@@ -1,0 +1,51 @@
+/**
+{
+    "id": "040",
+    "category": "Structured Output",
+    "categorySlug": "structured-output",
+    "categoryIcon": "brackets-curly",
+    "title": "Structured Output Pipeline",
+    "difficulty": "advanced",
+    "icon": "cube",
+    "description": "Build a reusable, type-safe pipeline with .structuredOutput() — run it many times with different inputs.",
+    "guidance": "Pipelines and structured output combine into a reusable template: build the message + model + schema chain ONCE with aiMessage()...toDefaultModel().structuredOutput( new SomeClass() ), then call .run({ ...bindings }) as many times as you like with different ${bindings}. Every call returns a fully-typed instance of your class — no repeated parsing.\n\nWhy this beats calling aiChat() with returnFormat in a loop:\n• The prompt template, model choice, and schema are defined once and reused\n• You can .transform() the structured result into a plain struct/shape your app wants\n' You can chain a SECOND pipeline off the first one's output — e.g. extract key points, then expand on the most important one\n\n${binding} placeholders in the message template are filled from the struct you pass to .run(). ${_input} specifically refers to the previous pipeline stage's output when chaining multi-stage sequences.",
+    "output": "Analyzing 3 reviews...\n\nReview #1:\nText: \"This product is absolutely amazing! Best purcha...\"\nSentiment: positive\nScore: 0.95\nKeywords: amazing, best, purchase\n\nReview #2:\nText: \"Terrible experience. Would not recommend to any...\"\nSentiment: negative\nScore: 0.1\nKeywords: terrible, not recommend\n\nReview #3:\nText: \"It's okay, nothing special but does the job....\"\nSentiment: neutral\nScore: 0.5\nKeywords: okay, nothing special",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/pipelines/structured-output.md",
+    "provider": "openai"
+}
+*/
+
+// Define the shape of the structured result
+class SentimentAnalysis {
+    property name="sentiment" type="string";   // positive | negative | neutral
+    property name="score"     type="numeric";  // -1.0 to 1.0
+    property name="keywords"  type="array";
+}
+
+// Build the pipeline ONCE — template + model + schema
+sentimentPipeline = aiMessage()
+    .system( "You are a sentiment analysis expert. Be concise and precise." )
+    .user( "Analyze the sentiment of this review: ${text}" )
+    .toDefaultModel()
+    .structuredOutput( new SentimentAnalysis() )
+
+// Reuse the SAME pipeline for every review — no re-parsing, no repeated setup
+reviews = [
+    "This product is absolutely amazing! Best purchase ever!",
+    "Terrible experience. Would not recommend to anyone.",
+    "It's okay, nothing special but does the job."
+]
+
+println( "Analyzing " & reviews.len() & " reviews..." )
+println( "" )
+
+reviews.each( ( review, index ) => {
+    analysis = sentimentPipeline.run( { text: review } )
+
+    println( "Review #" & index & ":" )
+    println( 'Text: "' & left( review, 50 ) & '..."' )
+    println( "Sentiment: " & analysis.getSentiment() )
+    println( "Score: " & analysis.getScore() )
+    println( "Keywords: " & analysis.getKeywords().toList( ", " ) )
+    println( "" )
+} )

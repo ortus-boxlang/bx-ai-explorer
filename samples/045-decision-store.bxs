@@ -1,0 +1,52 @@
+/**
+{
+    "id": "045",
+    "category": "Human-in-the-Loop",
+    "categorySlug": "hitl",
+    "categoryIcon": "hand-palm",
+    "title": "Decision Store — Durable Approval Grants",
+    "difficulty": "intermediate",
+    "icon": "vault",
+    "description": "Make 'always allow this tool' decisions durable across runs (and restarts) with aiDecisionStore().",
+    "guidance": "approve_always / approve_session are only useful if they're remembered. aiDecisionStore( store, config ) creates an IDecisionStore backing those durable grants, so a human's 'always allow this tool' decision survives past the current run.\n\nBacking stores:\n• cache — CacheBox-backed, fast, in-memory (or your configured cache) — good default\n• jdbc — any datasource, survives a process restart\n• file — JSON on disk, zero extra infrastructure\n\nThe contract is small and easy to implement yourself: grant(), isGranted(), revoke(), listGrants() — see IDecisionStore if you need a custom backend.\n\nPass decisionStore explicitly to HumanInTheLoopMiddleware, or configure the application-wide default once under settings.hitl.decisionStore — every HumanInTheLoopMiddleware in an app shares ONE store by design, since an app only ever attaches one HITL middleware at a time.\n\nWith no arguments, aiDecisionStore() resolves that same application-wide default — the identical fallback HumanInTheLoopMiddleware uses internally when it isn't given one explicitly.",
+    "output": "Granted: alice can always use 'deleteRecord'\nisGranted('alice', 'deleteRecord'): true\nisGranted('bob',   'deleteRecord'): false\n\nGrants for alice:\n  - deleteRecord (scope: , granted: 2026-08-31)\n  - placeOrder (scope: amount<1000, granted: 2026-08-31)\n\nRevoked alice's 'deleteRecord' grant.\nisGranted('alice', 'deleteRecord') after revoke: false\n\nAttached to HumanInTheLoopMiddleware — future approve_always decisions persist here.",
+    "docsUrl": "https://ai.ortusbooks.com/advanced/reference/built-in-functions/aidecisionstore.md",
+    "provider": "mock"
+}
+*/
+
+// 1. Create a cache-backed decision store directly
+store = aiDecisionStore( "cache", {} )
+
+// 2. Record a durable grant — "alice can always use deleteRecord, no scope restriction"
+store.grant( "alice", "deleteRecord" )
+
+println( "Granted: alice can always use 'deleteRecord'" )
+println( "isGranted('alice', 'deleteRecord'): " & store.isGranted( "alice", "deleteRecord" ) )
+println( "isGranted('bob',   'deleteRecord'): " & store.isGranted( "bob", "deleteRecord" ) )
+println( "" )
+
+// 3. A scoped grant — narrower than "this tool, unconditionally"
+store.grant( "alice", "placeOrder", "amount<1000" )
+
+println( "Grants for alice:" )
+store.listGrants( "alice" ).each( g => {
+    println( "  - " & g.toolName & " (scope: " & g.scope & ", granted: " & dateFormat( g.grantedAt, "yyyy-mm-dd" ) & ")" )
+} )
+println( "" )
+
+// 4. Revoke a grant — a no-op if none exists
+store.revoke( "alice", "deleteRecord" )
+println( "Revoked alice's 'deleteRecord' grant." )
+println( "isGranted('alice', 'deleteRecord') after revoke: " & store.isGranted( "alice", "deleteRecord" ) )
+println( "" )
+
+// 5. Attach the SAME store to HumanInTheLoopMiddleware so approve_always decisions
+//    made through it persist here, instead of the application-wide default.
+import bxModules.bxai.models.middleware.core.HumanInTheLoopMiddleware;
+
+hitl = new HumanInTheLoopMiddleware(
+    toolsRequiringApproval: [ "placeOrder" ],
+    decisionStore         : store
+)
+println( "Attached to HumanInTheLoopMiddleware — future approve_always decisions persist here." )

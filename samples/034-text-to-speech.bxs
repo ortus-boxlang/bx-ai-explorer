@@ -1,0 +1,49 @@
+/**
+{
+    "id": "034",
+    "category": "Media Generation",
+    "categorySlug": "media-generation",
+    "categoryIcon": "image",
+    "title": "Text-to-Speech",
+    "difficulty": "beginner",
+    "icon": "speaker-high",
+    "description": "Convert text to natural-sounding audio with aiSpeak() and save or stream it.",
+    "guidance": "aiSpeak() converts text into synthesized speech using a cloud AI provider (openai, elevenlabs, gemini, grok, mistral). It returns an AiSpeechResponse wrapping the binary audio, with helpers for saving, Base64 encoding, and inspecting metadata.\n\nWhen options.outputFile is set, the audio is saved automatically and aiSpeak() returns the absolute file path string instead of the response object.\n\nVoice selection:\n• Use a provider-specific voice name in params.voice (e.g. 'nova', 'onyx' for OpenAI).\n• Or use the gender shortcut 'male' / 'female' — resolved per provider via audio.voiceGenderMap, overridable in boxlang.json.\n\nUseful AiSpeechResponse methods: getAudioFormat(), getSize(), getBase64(), hasAudio(), saveToFile( path ).\n\nCombine with aiTranscribe() for round-trip voice pipelines — see the Speech-to-Text sample.",
+    "output": "Basic TTS:\n  Saved to: /tmp/boxlang-tts-basic.mp3\n\nCustom voice (nova, tts-1-hd):\n  Provider: openai\n  Format:   mp3\n  Size:     48213 bytes\n  Has audio: true\n\nGender shortcut voices:\n  male   -> /tmp/boxlang-tts-male.mp3\n  female -> /tmp/boxlang-tts-female.mp3",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/audio/text-to-speech.md",
+    "provider": "openai"
+}
+*/
+
+// 1. Basic TTS — save directly to a file (returns the file path as a string)
+basicPath = aiSpeak(
+    text   : "Hello! BoxLang makes building AI-powered voice applications simple and expressive.",
+    options: { outputFile: "/tmp/boxlang-tts-basic.mp3" }
+)
+println( "Basic TTS:" )
+println( "  Saved to: " & basicPath )
+println( "" )
+
+// 2. Custom voice + model — returns an AiSpeechResponse object
+response = aiSpeak(
+    text  : "The quick brown fox jumps over the lazy dog.",
+    params: { voice: "nova", model: "tts-1-hd" }
+)
+
+println( "Custom voice (nova, tts-1-hd):" )
+println( "  Provider: " & response.getProvider() )
+println( "  Format:   " & response.getAudioFormat() )
+println( "  Size:     " & response.getSize() & " bytes" )
+println( "  Has audio: " & response.hasAudio() )
+println( "" )
+
+// 3. Gender keyword shortcut — resolves to the right voice per provider automatically
+malePath   = "/tmp/boxlang-tts-male.mp3"
+femalePath = "/tmp/boxlang-tts-female.mp3"
+
+aiSpeak( text: "Hello! I am your male AI assistant.",   params: { voice: "male"   }, options: { outputFile: malePath   } )
+aiSpeak( text: "Hello! I am your female AI assistant.", params: { voice: "female" }, options: { outputFile: femalePath } )
+
+println( "Gender shortcut voices:" )
+println( "  male   -> " & malePath )
+println( "  female -> " & femalePath )

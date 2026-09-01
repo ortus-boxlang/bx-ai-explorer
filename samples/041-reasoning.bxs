@@ -1,0 +1,66 @@
+/**
+{
+    "id": "041",
+    "category": "Reasoning",
+    "categorySlug": "reasoning",
+    "categoryIcon": "brain",
+    "title": "Extended Thinking & Reasoning",
+    "difficulty": "advanced",
+    "icon": "brain",
+    "description": "Enable and read model reasoning — sync and streaming — with the same normalized envelope on every provider.",
+    "guidance": "Reasoning-capable models were always easy to ENABLE — params pass straight through to the provider body — but every provider spelled the reasoning it sent back differently on the wire. BoxLang AI 3.4 normalizes reasoning onto one envelope, the same shape every provider already normalizes chat responses onto:\n\n• Synchronous: choices[].message.reasoning\n• Streaming: choices[].delta.reasoning\n\nEnabling it is model/provider-specific because params passes straight through:\n• Claude extended thinking: params: { thinking: { type: 'enabled', budget_tokens: 10000 } }\n• OpenAI reasoning effort: params: { reasoning_effort: 'high' }\n\nAbsence is normal, never an error — a model that didn't think simply omits the key, so always guard with ?: \"\" rather than assuming it's present. Reasoning is kept strictly separate from content and is NEVER persisted to conversation memory — the model's private thinking is never replayed back to it as if it had said it.",
+    "output": "--- Synchronous (Claude extended thinking) ---\nReasoning: Let me work through this step by step. The train travels at 60mph...\nAnswer:    The train arrives at 2:45 PM.\n\n--- Streaming (reasoning arrives ahead of content) ---\n🤔 First, let's identify the constraints...\n🤔 Given those constraints, the migration should happen in three phases...\nStep 1: Snapshot the current schema.\nStep 2: Run the migration in a shadow table.\nStep 3: Cut over during the low-traffic window.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/reasoning.md",
+    "provider": "claude"
+}
+*/
+
+// 1. Synchronous — enable Claude's extended thinking, read it back on the
+//    normalized envelope. options.returnFormat: "raw" gives you the full
+//    choices[] shape so message.reasoning is reachable.
+result = aiChat(
+    "A train leaves the station at 2:00 PM traveling at 60mph. It needs to cover 45 miles. Solve this step by step: what time does it arrive?",
+    { thinking: { type: "enabled", budget_tokens: 10000 } },
+    { provider: "claude", returnFormat: "raw" }
+)
+
+reasoning = result.choices[ 1 ].message.reasoning ?: ""   // "" when the model didn't think — absence is normal
+answer    = result.choices[ 1 ].message.content
+
+println( "--- Synchronous (Claude extended thinking) ---" )
+println( "Reasoning: " & left( reasoning, 80 ) & "..." )
+println( "Answer:    " & answer )
+println( "" )
+
+// 2. Streaming — reasoning arrives on delta.reasoning, AHEAD of delta.content,
+//    since the model "thinks" before it "speaks".
+println( "--- Streaming (reasoning arrives ahead of content) ---" )
+
+aiChatStream(
+    "Plan a three-step database migration with zero downtime.",
+    ( chunk ) => {
+        var delta = chunk.choices?.first()?.delta ?: {}
+        if ( !isNull( delta.reasoning ) && len( delta.reasoning ) ) {
+            print( "🤔 " & delta.reasoning )
+        }
+        if ( !isNull( delta.content ) && len( delta.content ) ) {
+            print( delta.content )
+        }
+    },
+    { thinking: { type: "enabled", budget_tokens: 8000 } },
+    { provider: "claude" }
+)
+
+println( "" )
+println( "" )
+
+// 3. OpenAI's equivalent — reasoning_effort instead of a thinking block.
+//    Same normalized envelope on the way back.
+openaiResult = aiChat(
+    "Briefly explain why cache invalidation is hard.",
+    { reasoning_effort: "high" },
+    { provider: "openai", returnFormat: "raw" }
+)
+println( "--- OpenAI reasoning_effort ---" )
+println( "Reasoning present: " & ( len( openaiResult.choices[ 1 ].message.reasoning ?: "" ) > 0 ) )
+println( "Answer: " & openaiResult.choices[ 1 ].message.content )

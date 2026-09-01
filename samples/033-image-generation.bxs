@@ -1,0 +1,49 @@
+/**
+{
+    "id": "033",
+    "category": "Media Generation",
+    "categorySlug": "media-generation",
+    "categoryIcon": "image",
+    "title": "Image Generation",
+    "difficulty": "beginner",
+    "icon": "image",
+    "description": "Generate images from a text prompt with aiImage() — direct call or fluent builder.",
+    "guidance": "aiImage() generates one or more images from a text description. It supports two calling styles:\n\n• Direct call — aiImage( prompt ) returns an AiImageResponse immediately.\n• Fluent builder — call aiImage() with no prompt to get a chainable AiImageRequest; terminate with .generate().\n\nWhen options.outputFile is set, the first image is saved automatically and the function returns the file path string instead of the response object.\n\nUseful AiImageResponse methods: getFirstURL(), getBase64(), getMimeType(), hasImages(), saveToFile( path ), saveAllToDirectory( dir ).\n\nparams supports provider-specific options like size ('1024x1024', '1792x1024'), quality ('standard'/'hd' on OpenAI, 'low'/'medium'/'high' on gpt-image-1), and style ('vivid'/'natural'). Different providers (openai, gemini, grok) return either URLs or raw binary — the response object normalizes both.",
+    "output": "Direct call:\n  Provider: openai\n  Model:    gpt-image-1\n  Has images: true\n  First URL: https://oaidalleapiprodscus.blob.core.windows.net/private/...\n\nFluent builder (HD, widescreen, vivid):\n  Saved to: /tmp/bxai-cyberpunk-city.png\n\nSaved directly to file:\n  /tmp/bxai-mountain-lake.png",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/image-generation/generating.md",
+    "provider": "openai"
+}
+*/
+
+// 1. Direct call — returns an AiImageResponse
+response = aiImage( "a majestic red fox sitting in an autumn forest at golden hour" )
+
+println( "Direct call:" )
+println( "  Provider: " & response.getProvider() )
+println( "  Model:    " & response.getModel() )
+println( "  Has images: " & response.hasImages() )
+println( "  First URL: " & left( response.getFirstURL(), 60 ) & "..." )
+println( "" )
+
+// 2. Fluent builder — call aiImage() with no prompt, chain, terminate with .generate()
+hdResponse = aiImage()
+    .prompt( "a futuristic cyberpunk cityscape at night with neon lights and flying cars" )
+    .provider( "openai" )
+    .size( "1792x1024" )
+    .high()
+    .style( "vivid" )
+    .generate()
+
+hdResponse.saveToFile( "/tmp/bxai-cyberpunk-city.png" )
+println( "Fluent builder (HD, widescreen, vivid):" )
+println( "  Saved to: /tmp/bxai-cyberpunk-city.png" )
+println( "" )
+
+// 3. Save directly to a file — options.outputFile makes aiImage() return the path
+savedPath = aiImage(
+    "a serene mountain lake reflecting snow-capped peaks",
+    options: { outputFile: "/tmp/bxai-mountain-lake.png" }
+)
+
+println( "Saved directly to file:" )
+println( "  " & savedPath )

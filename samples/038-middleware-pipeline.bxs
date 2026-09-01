@@ -1,0 +1,83 @@
+/**
+{
+    "id": "038",
+    "category": "Middleware",
+    "categorySlug": "middleware",
+    "categoryIcon": "faders-horizontal",
+    "title": "Middleware Pipeline",
+    "difficulty": "advanced",
+    "icon": "faders-horizontal",
+    "description": "Stack multiple middleware on an agent — logging, retry, and your own custom hook — in a single pipeline.",
+    "guidance": "Middleware wraps every stage of an agent run: beforeAgentRun, beforeLLMCall, beforeToolCall, afterToolCall, afterLLMCall, afterAgentRun. The `middleware` array runs in order — each one gets a chance to observe, modify, retry, or short-circuit the request.\n\nBuilt-in middleware ships under bxModules.bxai.models.middleware.core.*:\n• LoggingMiddleware — records every lifecycle hook to the 'ai' log and/or console\n• RetryMiddleware — automatic exponential-backoff retry on transient LLM/tool errors\n• MaxToolCallsMiddleware — caps how many tool calls a single turn can make\n• HumanInTheLoopMiddleware — pauses for human approval (see the HITL samples)\n\nWriting your own is just a class extending BaseAiMiddleware and overriding the hooks you care about — return an AiMiddlewareResult (or nothing, to continue as normal) from any hook.\n\nMiddleware compose cleanly: this sample stacks a custom timing middleware, LoggingMiddleware, and RetryMiddleware on one agent, in that order.",
+    "output": "=== Middleware Pipeline ===\n\n[TIMING] beforeAgentRun\n[LOG] beforeLLMCall — model: mock\n[LOG] beforeToolCall — search(query: BoxLang docs)\nSimulated network blip on attempt 1\nSimulated network blip on attempt 2\n[LOG] afterToolCall — search succeeded on attempt 3\n[LOG] afterLLMCall\n[TIMING] afterAgentRun — 142ms\n\nResponse: Search results for: BoxLang docs (succeeded on attempt 3)\nTool call attempts: 3",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/middleware.md",
+    "provider": "mock"
+}
+*/
+
+import bxModules.bxai.models.middleware.BaseAiMiddleware;
+import bxModules.bxai.models.middleware.AiMiddlewareResult;
+import bxModules.bxai.models.middleware.core.LoggingMiddleware;
+import bxModules.bxai.models.middleware.core.RetryMiddleware;
+
+// 1. A small custom middleware — times the whole agent run
+class TimingMiddleware extends="BaseAiMiddleware" {
+
+    function init() {
+        variables.name = "Timing Middleware"
+        return this
+    }
+
+    function beforeAgentRun( required struct context ) {
+        context.startedAt = getTickCount()
+        println( "[TIMING] beforeAgentRun" )
+        return AiMiddlewareResult.continue()
+    }
+
+    function afterAgentRun( required struct context ) {
+        var elapsed = getTickCount() - context.startedAt
+        println( "[TIMING] afterAgentRun — " & elapsed & "ms" )
+        return AiMiddlewareResult.continue()
+    }
+
+}
+
+// 2. A flaky tool: fails twice, succeeds on the third attempt
+attemptCount = 0
+function flakySearch( required string query ) {
+    attemptCount++
+    if ( attemptCount < 3 ) {
+        throw( type: "TransientNetworkError", message: "Simulated network blip on attempt " & attemptCount )
+    }
+    return "Search results for: " & arguments.query & "  (succeeded on attempt " & attemptCount & ")"
+}
+
+searchTool = aiTool( "search", "Search for information", flakySearch )
+    .describeArg( "query", "Search query" )
+
+// 3. Stack all three middleware on one agent — order matters, each wraps the next
+agent = aiAgent(
+    name       : "ResilientLoggedAgent",
+    description: "Agent with timing, logging, and automatic retry",
+    tools      : [ searchTool ],
+    middleware : [
+        new TimingMiddleware(),
+        new LoggingMiddleware( logToConsole: true, logToFile: false, prefix: "[LOG]" ),
+        new RetryMiddleware( maxRetries: 4, initialDelay: 100, backoffMultiplier: 2.0, maxDelay: 2000 )
+    ],
+    model: aiModel( provider: "mock", options: { providerOptions: {
+        responses: [
+            { toolCalls: [ { name: "search", arguments: { query: "BoxLang docs" } } ] },
+            "Here are the results you asked for."
+        ]
+    } } )
+)
+
+println( "=== Middleware Pipeline ===" )
+println( "" )
+
+response = agent.run( "Search for BoxLang docs" )
+
+println( "" )
+println( "Response: " & response )
+println( "Tool call attempts: " & attemptCount )

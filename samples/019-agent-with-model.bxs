@@ -19,7 +19,7 @@
 model = aiModel(
     provider: "claude",
     params  : {
-        model      : "claude-3-5-sonnet-20241022",
+        model      : "claude-sonnet-5",
         temperature: 0.8,
         max_tokens : 1000
     }

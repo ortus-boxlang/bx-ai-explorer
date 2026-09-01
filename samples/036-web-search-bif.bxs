@@ -1,0 +1,48 @@
+/**
+{
+    "id": "036",
+    "category": "AI Tools",
+    "categorySlug": "ai-tools",
+    "categoryIcon": "wrench",
+    "title": "Direct Web Search",
+    "difficulty": "intermediate",
+    "icon": "globe-hemisphere-west",
+    "description": "Call aiWebSearch() / aiWebSearchAsync() directly — outside of an agent — for search results as plain data.",
+    "guidance": "aiWebSearch() is a standalone BIF for web search — no agent or LLM call involved. It returns a plain array of result structs: [{ title, url, snippet }]. This is different from the '014 Built-In Web Search Tool' sample, where an agent decides FOR ITSELF when to search; here YOU call search directly and do whatever you want with the results (feed them into a prompt, cache them, log them, etc.).\n\nProvider resolution order: the `provider` option you pass → the `webSearch.defaultProvider` module setting → falls back to 'http' (a simple URL fetcher that needs no API key at all — handy for hitting a known page directly).\n\nSupported providers: http (no key), brave, google, tavily, exa — each needs its own API key configured under settings.webSearch or passed via options.apiKey.\n\naiWebSearchAsync() is the non-blocking twin — it returns a BoxFuture immediately so you can do other work while the search runs, then call .get() when you need the results.",
+    "output": "--- Sync search (default http provider, no API key) ---\nResult 1: BoxLang - Wikipedia\n  https://en.wikipedia.org/wiki/BoxLang\n\n--- Async search ---\nSearch fired, doing other work...\nGot 3 result(s) back.\n\n--- Brave provider (requires BRAVE_API_KEY) ---\nSkipped: set webSearch.provider + apiKey to try this.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/web-search/getting-started.md",
+    "provider": "openai"
+}
+*/
+
+// 1. Sync search — the default "http" provider needs no API key at all,
+//    it simply fetches the given URL and extracts a result from it.
+results = aiWebSearch( "https://en.wikipedia.org/wiki/BoxLang" )
+
+println( "--- Sync search (default http provider, no API key) ---" )
+for ( i = 1; i <= results.len(); i++ ) {
+    println( "Result " & i & ": " & results[ i ].title )
+    println( "  " & results[ i ].url )
+}
+println( "" )
+
+// 2. Async search — fire it, do other work, collect the results later
+future = aiWebSearchAsync( "BoxLang programming language updates" )
+
+println( "--- Async search ---" )
+println( "Search fired, doing other work..." )
+asyncResults = future.get( 30 )
+println( "Got " & asyncResults.len() & " result(s) back." )
+println( "" )
+
+// 3. A real search-engine provider (Brave/Tavily/Exa) — needs its own API key
+println( "--- Brave provider (requires BRAVE_API_KEY) ---" )
+try {
+    braveResults = aiWebSearch(
+        "latest BoxLang AI release",
+        { provider: "brave", maxResults: 5 }
+    )
+    braveResults.each( r => println( "  " & r.title & " — " & r.url ) )
+} catch( any e ) {
+    println( "Skipped: set webSearch.provider + apiKey to try this. (" & e.message & ")" )
+}

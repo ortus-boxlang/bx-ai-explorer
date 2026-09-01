@@ -21,7 +21,7 @@ println( "=== Analyzing customer feedback... ===" )
 println( "" )
 
 // Stage 1: Gemini Flash — fast, cheap classification
-classifyModel = aiModel( provider: "gemini", params: { model: "gemini-2.0-flash", temperature: 0 } )
+classifyModel = aiModel( provider: "gemini", params: { model: "gemini-2.5-flash", temperature: 0 } )
 classification = aiMessage()
     .user( "Classify this feedback in one line — Type (Bug/Feature/Praise), Severity (Low/Medium/High), Category: ${feedback}" )
     .to( classifyModel )
@@ -33,7 +33,7 @@ println( classification )
 println( "" )
 
 // Stage 2: OpenAI — structured data extraction
-extractModel = aiModel( provider: "openai", params: { model: "gpt-4o-mini", temperature: 0 } )
+extractModel = aiModel( provider: "openai", params: { model: "gpt-5.6-luna", temperature: 0 } )
 template = { issueType: "", severity: "", component: "", affectedUsers: "", suggestedPriority: "" }
 
 extracted = aiMessage()
@@ -48,7 +48,7 @@ for ( key in extracted.keyArray().sort("text") ) {
 println( "" )
 
 // Stage 3: Claude — write a warm, professional customer response
-claudeModel = aiModel( provider: "claude", params: { model: "claude-3-5-sonnet-20241022", temperature: 0.7 } )
+claudeModel = aiModel( provider: "claude", params: { model: "claude-sonnet-5", temperature: 0.7 } )
 response = aiMessage()
     .system( "You write empathetic, professional customer support responses." )
     .user( "Write a response to this customer feedback. Acknowledge the issue, show urgency, give an ETA:\n\n${feedback}" )

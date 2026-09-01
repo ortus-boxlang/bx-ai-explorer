@@ -1,0 +1,74 @@
+/**
+{
+    "id": "048",
+    "category": "AI Agents",
+    "categorySlug": "ai-agents",
+    "categoryIcon": "robot",
+    "title": "Agent Run Control",
+    "difficulty": "expert",
+    "icon": "stop-circle",
+    "description": "Cancel or steer an agent run already in flight with cancelRun() / steerRun() — addressed purely by threadId.",
+    "guidance": "Every agent supports run control out of the box — no token to construct, no special setup:\n\n  agent.cancelRun( threadId )                        // stop at the next checkpoint\n  agent.steerRun( threadId, \"actually, focus on X\" )  // splice a message into the live turn\n\nBoth take effect at the run's NEXT checkpoint (beforeLLMCall / beforeToolCall) — not instantly, since there's no mid-token-generation interruption. Both return false as a safe no-op when the thread has no run currently in flight, and fire onAIAgentRunCancel / onAIAgentRunSteer only when a call actually affects a run (never on the no-op case).\n\nThe pattern: kick off a long-running turn with runAsync() (returns a BoxFuture immediately) while passing a threadId, then call cancelRun()/steerRun() with that SAME threadId from another thread of execution while the future is still pending.\n\nThis is exactly the mechanism aiGatewaySession()'s 'steer' and 'interrupt' dispatch policies build on — see the Gateway Sessions sample — and it's available directly to any caller, agent-to-agent orchestration included.",
+    "output": "=== Cancelling a run in flight ===\ncancelRun('thread-cancel', ...) -> true\nRun result: [cancelled] stop after step A — a subsequent tool call never ran\n\n=== Steering a run in flight ===\nsteerRun('thread-steer', 'Please also mention BANANA.') -> true\nRun result: The weather in Miami is sunny — and BANANA, as requested.\n\n=== No-op on a thread with nothing active ===\ncancelRun('never-started') -> false\nsteerRun('never-started', 'hello') -> false",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/agents/run-control.md",
+    "provider": "mock"
+}
+*/
+
+// A tool with a small delay so there's a real window to cancel/steer mid-run
+function slowLookup( required string topic ) {
+    sleep( 300 )
+    return "Looked up: " & arguments.topic
+}
+lookupTool = aiTool( "lookup", "Look something up", slowLookup )
+    .describeArg( "topic", "What to look up" )
+
+// --- 1. Cancelling a run in flight ---
+cancelAgent = aiAgent(
+    name       : "CancelDemoAgent",
+    description: "Demo agent for cancelRun()",
+    tools      : [ lookupTool ],
+    model      : aiModel( provider: "mock", options: { providerOptions: {
+        responses: [
+            { toolCalls: [ { name: "lookup", arguments: { topic: "step A" } } ] },
+            { toolCalls: [ { name: "lookup", arguments: { topic: "step B" } } ] },
+            "Both lookups complete."
+        ]
+    } } )
+)
+
+println( "=== Cancelling a run in flight ===" )
+future = cancelAgent.runAsync( "Look up step A then step B", {}, { threadId: "thread-cancel" } )
+sleep( 100 )   // give the run a moment to start its first tool call
+cancelled = cancelAgent.cancelRun( "thread-cancel", "stop after step A" )
+println( "cancelRun('thread-cancel', ...) -> " & cancelled )
+result = future.get( 10 )
+println( "Run result: " & result )
+println( "" )
+
+// --- 2. Steering a run in flight ---
+steerAgent = aiAgent(
+    name       : "SteerDemoAgent",
+    description: "Demo agent for steerRun()",
+    tools      : [ lookupTool ],
+    model      : aiModel( provider: "mock", options: { providerOptions: {
+        responses: [
+            { toolCalls: [ { name: "lookup", arguments: { topic: "Miami weather" } } ] },
+            "The weather in Miami is sunny — and BANANA, as requested."
+        ]
+    } } )
+)
+
+println( "=== Steering a run in flight ===" )
+steerFuture = steerAgent.runAsync( "What's the weather in Miami?", {}, { threadId: "thread-steer" } )
+sleep( 100 )
+steered = steerAgent.steerRun( "thread-steer", "Please also mention BANANA." )
+println( "steerRun('thread-steer', 'Please also mention BANANA.') -> " & steered )
+steerResult = steerFuture.get( 10 )
+println( "Run result: " & steerResult )
+println( "" )
+
+// --- 3. No-op on a thread with nothing active — safe, no events fire ---
+println( "=== No-op on a thread with nothing active ===" )
+println( "cancelRun('never-started') -> " & cancelAgent.cancelRun( "never-started-thread" ) )
+println( "steerRun('never-started', 'hello') -> " & cancelAgent.steerRun( "never-started-thread", "hello" ) )
