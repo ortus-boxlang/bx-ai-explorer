@@ -1,0 +1,92 @@
+/**
+{
+    "id": "044",
+    "category": "Human-in-the-Loop",
+    "categorySlug": "hitl",
+    "categoryIcon": "hand-palm",
+    "title": "Human-in-the-Loop Approvals",
+    "difficulty": "advanced",
+    "icon": "hand-palm",
+    "description": "Pause an agent before a risky tool call and require human sign-off, with batched approvals for multiple pending calls.",
+    "guidance": "HumanInTheLoopMiddleware pauses before a listed tool executes and waits for a human decision — approve, reject, edit, approve_always, or approve_session.\n\ntoolsRequiringApproval (default policy) matches by tool name; pass `policy` instead for risk-based (RiskLevelApprovalPolicy), annotation-based (AnnotationApprovalPolicy), or your own CallbackApprovalPolicy.\n\nPresentation always goes through an IGateway via HumanInteractionCoordinator:\n• mode 'cli' (default) auto-attaches a CliGateway — a blocking stdin/stdout prompt\n• mode 'web' suspends the run instead, returning an AiMiddlewareResult you checkpoint and resume later via agent.resume( decision, threadId )\n• pass `gateway` directly for Slack/HTTP/any custom platform gateway\n\nBatched approvals (3.4.0): when a single turn requests SEVERAL tool calls that all need approval, they suspend TOGETHER as one checkpoint instead of one at a time. Resuming finishes the whole batch directly against the saved assistant message — no LLM replay, and nothing that already ran (or was already blocked) runs twice. A single decision applies to every pending call, or pass an array of per-call decision structs to resolve each individually.",
+    "output": "=== Human-in-the-Loop — Web/Async Mode ===\n\nresult.isSuspended(): true\nPending actions: get_weather, send_email\n\n--- Resuming with a single decision for the whole batch ---\nApproved uniformly.\nFinal: I checked the weather in Kansas City (72°F, sunny) and emailed the summary to ops@example.com.\n\n--- A second run: per-call decisions ---\nPending actions: get_weather, send_email\nget_weather -> approve, send_email -> reject (reason: not needed)\nFinal: I checked the weather in Kansas City (72°F, sunny). I did not send the email — it was declined.",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/human-in-the-loop.md",
+    "provider": "mock"
+}
+*/
+
+import bxModules.bxai.models.middleware.core.HumanInTheLoopMiddleware;
+
+// Two tools that both require human sign-off before they run
+function getWeather( required string city ) {
+    return "72°F, sunny in " & arguments.city
+}
+function sendEmail( required string to, required string body ) {
+    return "Email sent to " & arguments.to
+}
+
+weatherTool = aiTool( "get_weather", "Get the current weather for a city", getWeather )
+    .describeArg( "city", "City name" )
+emailTool = aiTool( "send_email", "Send an email", sendEmail )
+    .describeArg( "to",   "Recipient address" )
+    .describeArg( "body", "Email body" )
+
+// Web/async mode: instead of blocking on stdin, the run SUSPENDS and returns —
+// your app checkpoints it and calls agent.resume() once a human decides.
+// Each demo run gets its own agent + scripted mock model so the two
+// tool-calls-then-answer sequences below don't interfere with each other.
+function newOpsAgent( required string finalAnswer ) {
+    return aiAgent(
+        name        : "OpsAgent",
+        description : "Checks weather and emails ops — with human sign-off",
+        tools       : [ weatherTool, emailTool ],
+        middleware  : [ new HumanInTheLoopMiddleware(
+            mode                  : "web",
+            toolsRequiringApproval: [ "get_weather", "send_email" ]
+        ) ],
+        checkpointer: aiMemory( "cache" ),
+        model       : aiModel( provider: "mock", options: { providerOptions: {
+            responses: [
+                { toolCalls: [
+                    { name: "get_weather", arguments: { city: "Kansas City" } },
+                    { name: "send_email",  arguments: { to: "ops@example.com", body: "Weather check: 72°F, sunny" } }
+                ] },
+                arguments.finalAnswer
+            ]
+        } } )
+    )
+}
+
+println( "=== Human-in-the-Loop — Web/Async Mode ===" )
+println( "" )
+
+agent  = newOpsAgent( "I checked the weather in Kansas City (72°F, sunny) and emailed the summary to ops@example.com." )
+result = agent.run( "Check the weather in Kansas City and email the result to ops", {}, { threadId: "t1" } )
+
+println( "result.isSuspended(): " & result.isSuspended() )
+println( "Pending actions: " & result.getData().pendingActions.map( a => a.toolName ).toList( ", " ) )
+println( "" )
+
+// One decision, applied uniformly to every pending call in the batch
+println( "--- Resuming with a single decision for the whole batch ---" )
+final = agent.resume( "approve", "t1" )
+println( "Approved uniformly." )
+println( "Final: " & final )
+println( "" )
+
+// A second run, resolved with an array of PER-CALL decisions instead —
+// each struct is matched positionally to the pending actions above.
+agent2  = newOpsAgent( "I checked the weather in Kansas City (72°F, sunny). I did not send the email — it was declined." )
+result2 = agent2.run( "Check the weather in Kansas City and email the result to ops", {}, { threadId: "t2" } )
+println( "--- A second run: per-call decisions ---" )
+println( "Pending actions: " & result2.getData().pendingActions.map( a => a.toolName ).toList( ", " ) )
+
+final2 = agent2.resume(
+    [
+        { decision: "approve" },
+        { decision: "reject", reason: "not needed" }
+    ],
+    "t2"
+)
+println( "get_weather -> approve, send_email -> reject (reason: not needed)" )
+println( "Final: " & final2 )

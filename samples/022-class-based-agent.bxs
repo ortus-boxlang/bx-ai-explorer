@@ -25,7 +25,7 @@
 //             instructions: "You are an expert customer support agent for an e-commerce platform.
 //                            Help customers with their orders. Always verify the order ID before
 //                            sharing details. Be empathetic and solution-focused.",
-//             model       : aiModel( provider: "openai", params: { model: "gpt-4o-mini", temperature: 0.2 } ),
+//             model       : aiModel( provider: "openai", params: { model: "gpt-5.6-luna", temperature: 0.2 } ),
 //             memory      : aiMemory( "cache", { cacheKey: "order-support", maxMessages: 20 } ),
 //             params      : { temperature: 0.2 }
 //         )

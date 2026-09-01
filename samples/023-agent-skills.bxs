@@ -39,7 +39,7 @@ reviewAgent = aiAgent(
     instructions   : "Review BoxLang code for correctness, security, and best practices. Use your specialist skills when relevant.",
     skills         : coreSkills,
     availableSkills: specialistSkills,
-    model          : aiModel( provider: "claude", params: { model: "claude-3-5-sonnet-20241022" } )
+    model          : aiModel( provider: "claude", params: { model: "claude-sonnet-5" } )
 )
 
 // The agent will auto-activate the security-reviewer skill for this prompt

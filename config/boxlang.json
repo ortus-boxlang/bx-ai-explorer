@@ -9,7 +9,7 @@
                 // Ex: { temperature: 0.5, max_tokens: 100, model: "gpt-3.5-turbo" }
                 // gpt-oss-120b
                 "defaultParams" : {
-					"model": "gpt-5.4-mini"
+					"model": "gpt-5.6-luna"
                     //"model": "stepfun/step-3.5-flash"
 					//"model" : "openrouter/free"
 					//"model" : "openrouter/auto"
@@ -24,7 +24,7 @@
                 "providers" : {
 					"claude" : {
 						"params": {
-							"model": "claude-sonnet-4-5"
+							"model": "claude-sonnet-5"
 						}
 					}
                 },
@@ -68,6 +68,49 @@
 				"defaultSpeechModel"        : "",
 				"defaultTranscriptionModel" : ""
 			}
+
+			// --------------------------------------------------------------------------
+			// Security Settings — Prompt-injection guardrails (see samples/046 and 047)
+			// --------------------------------------------------------------------------
+			// Uncomment to auto-attach InputSanitizerMiddleware/fencing to EVERY chat
+			// request (aiChat, aiModel, aiAgent) instead of attaching middleware per-request.
+			// "security" : {
+			// 	"enabled" : false,
+			// 	"input" : {
+			// 		"enabled" : true,
+			// 		"action" : "flag",
+			// 		"detectors" : [],
+			// 		"customPatterns" : [],
+			// 		"normalizeUnicode" : true,
+			// 		"stripZeroWidth" : true,
+			// 		"scanToolResults" : true
+			// 	},
+			// 	"fencing" : {
+			// 		"enabled" : true,
+			// 		"fenceContext" : true,
+			// 		"escapeBindings" : true,
+			// 		"preamble" : ""
+			// 	}
+			// },
+
+			// --------------------------------------------------------------------------
+			// Gateway Settings — per-gateway configuration for aiGateway( name ) (see samples/042 and 043)
+			// --------------------------------------------------------------------------
+			// The name of the key is the gateway name; each gateway has its own options.
+			// Ex: { "slack": { "botToken": "...", "signingSecret": "..." } }
+			// "gateways" : {
+			// },
+
+			// --------------------------------------------------------------------------
+			// HITL Settings — default decision store for approve_always/approve_session
+			// durable grants (see samples/044 and 045)
+			// --------------------------------------------------------------------------
+			// "hitl" : {
+			// 	"decisionStore" : {
+			// 		"provider" : "cache",
+			// 		"config" : {}
+			// 	}
+			// }
         }
     }
 }

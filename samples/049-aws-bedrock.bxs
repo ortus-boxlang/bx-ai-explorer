@@ -1,0 +1,67 @@
+/**
+{
+    "id": "049",
+    "category": "Cloud Providers",
+    "categorySlug": "cloud-providers",
+    "categoryIcon": "cloud",
+    "title": "AWS Bedrock",
+    "difficulty": "intermediate",
+    "icon": "cloud",
+    "description": "Chat, stream, and use tools against Claude-on-Bedrock — bearer-token auth or the full AWS credential chain.",
+    "guidance": "aiChat( ..., options: { provider: 'bedrock', providerOptions: { ... } } ) routes the request through AWS Bedrock. Authentication resolves in order:\n\n1. Explicit awsAccessKeyId/awsSecretAccessKey/awsSessionToken in providerOptions\n2. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN environment variables\n3. A Bedrock long-term API key (bearer auth) — explicit providerOptions.bearerToken, or the AWS_BEARER_TOKEN_BEDROCK env var. Opt-in only, never inferred from a plain apiKey.\n4. ECS/EKS container credentials (including EKS Pod Identity's rotating token file)\n5. EC2 IMDSv2 instance-role credentials\n\nBearer-token auth is the simplest option — no SigV4 request signing required.\n\nTool-use and schema-typed structured output are wired up for Claude-family models on Bedrock; requesting either on a non-Claude family throws UnsupportedProviderCapability rather than silently dropping them. Batched HITL approvals (see the Human-in-the-Loop sample) are consistent across OpenAI, Claude, Bedrock, and Cohere.\n\nKnown limitation (3.4.0): Cohere-on-Bedrock is response-side only — replies parse correctly, but the request transform still sends a Claude-shaped body, so Cohere-on-Bedrock chat isn't functional end-to-end yet.",
+    "output": "--- Bearer-token auth (simplest — no SigV4 signing) ---\nBedrock says: Hello! I'm Claude, running on AWS Bedrock.\n\n--- Default AWS credential chain (env / container / IMDS) ---\nBedrock says: I can help analyze that dataset — what format is it in?\n\n--- Tool use on Claude-on-Bedrock ---\nTool called: get_account_balance(accountId: acct-9931)\nBedrock says: Your account balance is $4,218.50.\n\n--- Streaming ---\nBedrock is a fully managed service that gives you API access to foundation models from multiple providers...",
+    "docsUrl": "https://ai.ortusbooks.com/getting-started/installation/provider-setup.md",
+    "provider": "bedrock"
+}
+*/
+
+// 1. Bearer-token auth — the simplest option, no AWS SigV4 signing required
+answer = aiChat( "Say hello and mention what you're running on.", {}, {
+    provider       : "bedrock",
+    providerOptions: {
+        region     : "us-east-1",
+        bearerToken: "your-bedrock-bearer-token"   // or set AWS_BEARER_TOKEN_BEDROCK
+    }
+} )
+println( "--- Bearer-token auth (simplest — no SigV4 signing) ---" )
+println( "Bedrock says: " & answer )
+println( "" )
+
+// 2. Default AWS credential chain — explicit -> env -> ECS/EKS container -> EC2 IMDSv2
+chainAnswer = aiChat( "Can you help me analyze a dataset?", {}, {
+    provider       : "bedrock",
+    providerOptions: { region: "us-east-1" }
+} )
+println( "--- Default AWS credential chain (env / container / IMDS) ---" )
+println( "Bedrock says: " & chainAnswer )
+println( "" )
+
+// 3. Tool use — confirmed working for Claude-family models on Bedrock
+balanceTool = aiTool(
+    "get_account_balance",
+    "Look up an account's current balance",
+    ( args ) => ( { balance: 4218.50, currency: "USD" } )
+).describeArg( "accountId", "The account identifier" )
+
+toolAnswer = aiChat(
+    "What's the balance on account acct-9931?",
+    { tools: [ balanceTool ] },
+    { provider: "bedrock", providerOptions: { region: "us-east-1" } }
+)
+println( "--- Tool use on Claude-on-Bedrock ---" )
+println( "Tool called: get_account_balance(accountId: acct-9931)" )
+println( "Bedrock says: " & toolAnswer )
+println( "" )
+
+// 4. Streaming
+println( "--- Streaming ---" )
+aiChatStream(
+    "In one sentence, what is AWS Bedrock?",
+    ( chunk ) => {
+        content = chunk.choices?.first()?.delta?.content ?: ""
+        print( content )
+    },
+    {},
+    { provider: "bedrock", providerOptions: { region: "us-east-1" } }
+)
+println( "" )

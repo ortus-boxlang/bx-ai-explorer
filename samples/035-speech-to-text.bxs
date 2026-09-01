@@ -1,0 +1,51 @@
+/**
+{
+    "id": "035",
+    "category": "Media Generation",
+    "categorySlug": "media-generation",
+    "categoryIcon": "image",
+    "title": "Speech-to-Text",
+    "difficulty": "intermediate",
+    "icon": "waveform",
+    "description": "Transcribe audio files, URLs, or binary data to text with aiTranscribe().",
+    "guidance": "aiTranscribe() converts audio — a local file path, a public URL, or raw binary data — into text. aiTranscribe() auto-detects which kind of input it received.\n\nReturn formats:\n• Default (returnFormat: 'text') — returns a plain string.\n• returnFormat: 'response' — returns a full AiTranscriptionResponse with language detection, duration, and word/segment-level timestamps (provider-dependent).\n\nGroq's Whisper-based transcription is popular for its speed; pass options.provider: 'groq' with params.model: 'whisper-large-v3'. Pass params.language (BCP-47, e.g. 'en') to improve accuracy when you already know the spoken language.\n\nThis pairs naturally with aiSpeak() for round-trip voice pipelines: synthesize a prompt, transcribe it back, and diff against the original for a quick sanity check.",
+    "output": "Basic transcription:\n  \"The weather forecast predicts sunny skies and mild temperatures throughout the week.\"\n\nFull response object:\n  Provider: openai\n  Language: en\n  Duration: 4.2s\n  Text:     The weather forecast predicts sunny skies and mild temperatures throughout the week.\n\nGroq Whisper (fast):\n  \"The weather forecast predicts sunny skies and mild temperatures throughout the week.\"",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/audio/speech-to-text.md",
+    "provider": "groq"
+}
+*/
+
+// Prepare a test audio file with aiSpeak() so this sample is self-contained
+testAudioFile = "/tmp/boxlang-test-audio.mp3"
+aiSpeak(
+    text   : "The weather forecast predicts sunny skies and mild temperatures throughout the week.",
+    options: { outputFile: testAudioFile }
+)
+
+// 1. Basic transcription — returns a plain string (the default)
+transcript = aiTranscribe( audio: testAudioFile )
+println( "Basic transcription:" )
+println( '  "' & transcript & '"' )
+println( "" )
+
+// 2. Full response object — language, duration, segments
+response = aiTranscribe(
+    audio  : testAudioFile,
+    options: { returnFormat: "response" }
+)
+
+println( "Full response object:" )
+println( "  Provider: " & response.getProvider() )
+println( "  Language: " & response.getLanguage() )
+println( "  Duration: " & response.getDuration() & "s" )
+println( "  Text:     " & response.getText() )
+println( "" )
+
+// 3. Groq — fast, cost-effective Whisper transcription
+groqTranscript = aiTranscribe(
+    audio  : testAudioFile,
+    params : { model: "whisper-large-v3" },
+    options: { provider: "groq" }
+)
+println( "Groq Whisper (fast):" )
+println( '  "' & groqTranscript & '"' )

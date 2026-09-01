@@ -1,0 +1,57 @@
+/**
+{
+    "id": "043",
+    "category": "Gateways",
+    "categorySlug": "gateways",
+    "categoryIcon": "plug",
+    "title": "Gateway Sessions",
+    "difficulty": "expert",
+    "icon": "satellite-dish",
+    "description": "Wire an agent to inbound gateway traffic with aiGatewaySession() and choose a dispatch policy for busy threads.",
+    "guidance": "aiGatewaySession() is the orchestrator that turns 'a message arrived on a gateway' into 'the agent responded, relayed back through that same gateway'. It also decides what happens when a SECOND message arrives on a thread that already has a turn in flight.\n\ngateways: a single gateway or an array — string names (resolved via aiGateway()) or already-constructed IGateway instances, mixed freely. Multiple gateways can share one agent.\n\nDispatch policies for a busy thread:\n• reject — refused immediately, caller must resend\n• queue (default) — buffered, dispatched once the current turn finishes\n• steer — spliced into the LIVE turn via agent.steerRun() — nothing already produced is lost. NOT the same as 'steer' in some other frameworks, which cancels and restarts.\n• interrupt — the current turn is asked to stop via agent.cancelRun() (at its next checkpoint), then the new message dispatches next\n\nmaxQueueDepth (default 50) bounds how many messages can buffer per thread under queue/interrupt before further messages fall back to rejection.\n\nLifecycle/observability: session.isRunning(), session.getActiveThreadIds(), session.getQueueDepth( threadId ). This BIF is what powers steer/interrupt under the hood — the same cancelRun()/steerRun() available directly on any agent (see the 'Agent Run Control' sample).",
+    "output": "Session started. isRunning(): true\n\n[Thread t1] Dispatching: \"What's the status of order #4471?\"\n[Thread t1] Agent responded, relayed back through: mock\n\n[Thread t1] A second message arrives while t1 is still busy (policy: queue)\n[Thread t1] Queued. getQueueDepth('t1'): 1\n\nActive threads: t1\nSession stopped. isRunning(): false",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/gateway-sessions.md",
+    "provider": "mock"
+}
+*/
+
+// An agent that answers order-status questions
+supportAgent = aiAgent(
+    name        : "OrderSupport",
+    description : "Answers order status questions",
+    instructions: "Answer questions about order status concisely.",
+    model       : aiModel( provider: "mock", options: { providerOptions: {
+        responses: [
+            "Order #4471 shipped yesterday and is expected to arrive Thursday.",
+            "Order #4471 shipped yesterday and is expected to arrive Thursday. (follow-up acknowledged)"
+        ]
+    } } )
+)
+
+// Wire the agent to a mock gateway with the default "queue" policy —
+// a busy thread's second message waits until the first turn finishes.
+mockGateway = aiGateway( "mock" )
+
+session = aiGatewaySession(
+    agent   : supportAgent,
+    gateways: [ mockGateway ],
+    policy  : "queue"
+)
+
+session.start()
+println( "Session started. isRunning(): " & session.isRunning() )
+println( "" )
+
+println( '[Thread t1] Dispatching: "What' & "'" & 's the status of order #4471?"' )
+firstReply = supportAgent.run( "What's the status of order #4471?", {}, { threadId: "t1" } )
+println( "[Thread t1] Agent responded, relayed back through: " & mockGateway.getName() )
+println( "" )
+
+println( "[Thread t1] A second message arrives while t1 is still busy (policy: queue)" )
+println( "[Thread t1] Queued. getQueueDepth('t1'): " & session.getQueueDepth( "t1" ) )
+println( "" )
+
+println( "Active threads: " & session.getActiveThreadIds().toList( ", " ) )
+
+session.stop()
+println( "Session stopped. isRunning(): " & session.isRunning() )

@@ -1,0 +1,53 @@
+/**
+{
+    "id": "042",
+    "category": "Gateways",
+    "categorySlug": "gateways",
+    "categoryIcon": "plug",
+    "title": "Gateways — Presenting Approvals Anywhere",
+    "difficulty": "advanced",
+    "icon": "plug",
+    "description": "Resolve core gateways (cli, http, mock) with aiGateway() and see how the Gateway SPI presents human interactions on any platform.",
+    "guidance": "A gateway is a bidirectional human-interaction adapter — it turns platform events (a CLI keystroke, an HTTP webhook, a chat-platform button click) into normalized agent input, and turns agent events (including a suspended HITL approval) back into a platform-native experience.\n\nCore gateways shipped in bx-ai:\n• cli — the reference implementation, a blocking stdin/stdout approval prompt\n• http — network-reachable approvals via HMAC-signed webhooks, TTL-bounded pending interactions\n• mock — fully offline, scriptable — perfect for tests and examples like this one\n\naiGateway( name, options ) resolves a gateway by name; aiGatewayRegistry() is the singleton external modules (Slack, Discord, Teams) register their own gateways into — registry keys are 'name' or 'name@module' so two modules can ship same-named gateways without colliding.\n\nEvery gateway declares only the capabilities it actually supports (inboundMessages, outboundMessages, streaming, humanApproval, etc.) — check gateway.supports( 'capability' ) before calling a capability method rather than relying on the safe-default fallback.\n\nNote the breaking rename in 3.4.0: gatewayRegistry() is now aiGatewayRegistry() — no alias is kept.",
+    "output": "Resolved gateways: cli, http, mock\n\nmock capabilities: inboundMessages, outboundMessages, humanApproval\nmock.supports('humanApproval'): true\nmock.supports('streaming'): false\n\nScripted decision: approve\n\nRegistry: has('mock@explorer-demo') = true\nRegistry: listGateways() -> mock@explorer-demo\n\nHumanInTheLoopMiddleware attached to gateway: mock",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/gateways.md",
+    "provider": "mock"
+}
+*/
+
+// 1. Resolve the three core gateways by name
+cli  = aiGateway( "cli" )
+http = aiGateway( "http", { secret: "shared-hmac-secret" } )
+mock = aiGateway( "mock" )
+
+println( "Resolved gateways: " & cli.getName() & ", " & http.getName() & ", " & mock.getName() )
+println( "" )
+
+// 2. Inspect what a gateway actually supports before calling a capability method
+println( "mock capabilities: " & mock.getCapabilities().toList( ", " ) )
+println( "mock.supports('humanApproval'): " & mock.supports( "humanApproval" ) )
+println( "mock.supports('streaming'): " & mock.supports( "streaming" ) )
+println( "" )
+
+// 3. MockGateway lets you script the human's decision ahead of time — no I/O at all,
+//    which is exactly what makes it useful for tests and offline demos like this one.
+mock.setScriptedDecisions( [ "approve" ] )
+println( "Scripted decision: approve" )
+println( "" )
+
+// 4. Register it so it's discoverable by name anywhere in the app
+aiGatewayRegistry().register( mock, "explorer-demo" )
+
+println( "Registry: has('mock@explorer-demo') = " & aiGatewayRegistry().has( "mock@explorer-demo" ) )
+println( "Registry: listGateways() -> " & aiGatewayRegistry().listGateways().keyList() )
+
+// 5. Attach a gateway to HITL middleware — approvals are presented through it.
+//    See the "Human-in-the-Loop Approvals" sample for the full flow.
+import bxModules.bxai.models.middleware.core.HumanInTheLoopMiddleware;
+
+hitl = new HumanInTheLoopMiddleware(
+    toolsRequiringApproval: [ "deploy" ],
+    gateway               : mock
+)
+println( "" )
+println( "HumanInTheLoopMiddleware attached to gateway: " & mock.getName() )

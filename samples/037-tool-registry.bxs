@@ -1,0 +1,57 @@
+/**
+{
+    "id": "037",
+    "category": "AI Tools",
+    "categorySlug": "ai-tools",
+    "categoryIcon": "wrench",
+    "title": "Tool Registry",
+    "difficulty": "intermediate",
+    "icon": "toolbox",
+    "description": "Register AI tools once and resolve them by name anywhere with aiToolRegistry().",
+    "guidance": "aiToolRegistry() returns a singleton registry so you don't have to build and pass a tools array to every agent. Register once, resolve by name anywhere in your app — great for sharing tools across modules and avoiding duplicate definitions.\n\nRegistration paths:\n• aiTool() auto-registers by default — pass { register: false } to opt out.\n• aiToolRegistry().register( name, description, callback ) registers a closure directly, no aiTool() wrapper needed.\n• A module name groups tools for bulk unregistration later — the key becomes 'name@module'.\n• @AITool-annotated class methods can be bulk-registered with aiToolRegistry().scan( instance, moduleName ).\n\nresolveTools() accepts a heterogeneous array — mix registry-key strings and ITool instances freely — which is the easiest way to hand an agent a curated subset of the registry.",
+    "output": "Registered tools: calculate, search@research-module\n\nhas('calculate'): true\nhas('unknown'): false\n\nResolved 2 tool(s) for the agent:\n  - calculate\n  - search@research-module\n\nAgent response: 15 * 23 + 7 = 352",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/tool-registry.md",
+    "provider": "openai"
+}
+*/
+
+// 1. Register a closure directly with the registry — no aiTool() wrapper needed
+aiToolRegistry().register(
+    name       : "calculate",
+    description: "Evaluate a math expression and return the numeric result",
+    callback   : ( expression ) => evaluate( expression )
+)
+
+// 2. Register with module attribution — key becomes "search@research-module"
+aiToolRegistry().register(
+    name       : "search",
+    description: "Search internal knowledge base articles",
+    callback   : ( query ) => "3 articles found for: " & query,
+    module     : "research-module"
+)
+
+println( "Registered tools: calculate, search@research-module" )
+println( "" )
+
+// 3. Check existence and resolve by name
+println( "has('calculate'): " & aiToolRegistry().has( "calculate" ) )
+println( "has('unknown'): " & aiToolRegistry().has( "unknown" ) )
+println( "" )
+
+// 4. resolveTools() accepts a mix of registry-key strings and ITool instances
+resolved = aiToolRegistry().resolveTools( [ "calculate", "search@research-module" ] )
+
+println( "Resolved " & resolved.len() & " tool(s) for the agent:" )
+resolved.each( t => println( "  - " & t.getName() ) )
+println( "" )
+
+// 5. Hand the resolved tools to an agent — it decides when to call them
+agent = aiAgent(
+    name        : "MathAssistant",
+    description : "Answers questions using registered tools",
+    instructions: "Use the calculate tool for any arithmetic. Show your work briefly.",
+    tools       : aiToolRegistry().resolveTools( [ "calculate" ] )
+)
+
+response = agent.run( "What is 15 * 23 + 7?" )
+println( "Agent response: " & response )

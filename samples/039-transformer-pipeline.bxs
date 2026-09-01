@@ -1,0 +1,65 @@
+/**
+{
+    "id": "039",
+    "category": "Pipelines",
+    "categorySlug": "pipelines",
+    "categoryIcon": "flow-arrow",
+    "title": "Transformer Pipeline",
+    "difficulty": "intermediate",
+    "icon": "arrows-clockwise",
+    "description": "Chain aiTransform() steps before and after an LLM call with aiRunnableSequence().",
+    "guidance": "aiTransform( fn ) wraps a plain BoxLang closure — or a built-in extractor ('code', 'json', 'text', 'xml') — as a Runnable so it can sit inside an aiRunnableSequence() alongside models and other pipeline steps. Each step's output becomes the next step's input.\n\nThis is the general-purpose escape hatch for pipeline logic that isn't itself an AI call:\n• Pre-processing — clean/normalize input BEFORE it reaches the model (trim whitespace, add context, validate)\n• Post-processing — extract/reshape the model's response AFTER it comes back (pull code blocks, parse JSON, strip markdown)\n\nBuilt-in extractor shortcuts save you from writing your own regex:\n  aiTransform( 'code' )  — pulls the first fenced code block out of a response\n  aiTransform( 'json' )  — extracts and parses embedded JSON\n  aiTransform( 'text' )  — strips markdown formatting down to plain text\n\nBecause each step is just a Runnable, the whole chain composes with aiModel(), aiMessage(), and any other Runnable in the module — transformers aren't a separate system, they're pipeline citizens.",
+    "output": "Input:  [  hello world  ]\nOutput: [PREFIX: HELLO WORLD]\n\nPre-process → AI:\nRaw:  '  What    is    BoxLang?   '\nAI:   BoxLang is a modern, dynamic JVM language that blends CFML-style simplicity with full Java interoperability.\n\nAI answer (code extracted + cleaned):\nfunction reverseString(str) {\n  return str.split('').reverse().join('');\n}",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/pipelines/transforms.md",
+    "provider": "openai"
+}
+*/
+
+// 1. Simple transformation chain — no LLM involved at all
+pipeline = aiRunnableSequence( [
+    aiTransform( text => uCase( text ) ),
+    aiTransform( text => trim( text ) ),
+    aiTransform( text => "PREFIX: " & text )
+] )
+
+input  = "  hello world  "
+result = pipeline.run( input )
+
+println( "Input:  [" & input & "]" )
+println( "Output: [" & result & "]" )
+println( "" )
+
+// 2. Pre-process pipeline: clean the raw input, add context, THEN call the AI.
+//    Each step is a Runnable — a plain closure wrapped by aiTransform(), or aiModel()
+//    itself — chained with aiRunnableSequence() exactly like any other pipeline.
+preProcessPipeline = aiRunnableSequence( [
+    // Step 1: collapse whitespace before it ever reaches the model
+    aiTransform( input => reReplace( trim( input ), "\s+", " ", "all" ) ),
+    // Step 2: wrap it with instructions
+    aiTransform( input => "User query: " & input & char( 10 ) & "Please respond in one sentence." ),
+    // Step 3: send it to the default model
+    aiModel( "openai" )
+] )
+
+println( "Pre-process → AI:" )
+raw = "  What    is    BoxLang?   "
+println( "Raw:  '" & raw & "'" )
+answer = preProcessPipeline.run( raw )
+println( "AI:   " & answer )
+println( "" )
+
+// 3. Post-process pipeline: call the AI FIRST, then extract + clean its response
+//    using the built-in code extractor and text-cleaner transformer shortcuts.
+postProcessPipeline = aiRunnableSequence( [
+    aiModel( "openai" ),
+    aiTransform( "code" ),        // pulls the fenced code block out of the response
+    aiTransform( "text" )         // strips any remaining markdown noise
+] )
+
+codePrompt = aiMessage()
+    .system( "Generate BoxLang code wrapped in ```javascript blocks. No prose." )
+    .user( "Write a function to reverse a string" )
+
+cleanCode = postProcessPipeline.run( codePrompt )
+println( "AI answer (code extracted + cleaned):" )
+println( cleanCode )

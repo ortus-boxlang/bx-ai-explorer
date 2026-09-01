@@ -38,10 +38,19 @@
         }
     }
 
+    // ── Count distinct providers referenced across all samples ─────────────
+    providersSeen = {};
+    for ( s in allSamples ) {
+        if ( s.keyExists( "provider" ) && len( s.provider ) ) {
+            providersSeen[ s.provider ] = true;
+        }
+    }
+
     samplesJSON    = jsonSerialize( allSamples );
     categoriesJSON = jsonSerialize( categories );
     totalSamples   = allSamples.len();
     totalCats      = categories.len();
+    totalProviders = providersSeen.count();
 </bx:script><!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 <head>
@@ -69,7 +78,7 @@
     <script>
         window.__SAMPLES__    = <bx:output>#samplesJSON#</bx:output>;
         window.__CATEGORIES__ = <bx:output>#categoriesJSON#</bx:output>;
-        window.__STATS__      = { samples: <bx:output>#totalSamples#</bx:output>, categories: <bx:output>#totalCats#</bx:output> };
+        window.__STATS__      = { samples: <bx:output>#totalSamples#</bx:output>, categories: <bx:output>#totalCats#</bx:output>, providers: <bx:output>#totalProviders#</bx:output> };
     </script>
 </head>
 <body>
@@ -216,7 +225,7 @@
                             <div class="stat-label">Categories</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-num">5</div>
+                            <div class="stat-num" x-text="stats.providers"></div>
                             <div class="stat-label">Providers</div>
                         </div>
                     </div>
@@ -368,7 +377,7 @@ function explorer() {
     return {
         samples       : window.__SAMPLES__    || [],
         categories    : window.__CATEGORIES__ || [],
-        stats         : window.__STATS__      || { samples: 0, categories: 0 },
+        stats         : window.__STATS__      || { samples: 0, categories: 0, providers: 0 },
         selectedId    : null,
         searchQuery   : '',
         activeDiff    : 'all',
