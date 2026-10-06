@@ -1,0 +1,68 @@
+/**
+{
+    "id": "050",
+    "category": "Voice Streaming",
+    "categorySlug": "voice-streaming",
+    "categoryIcon": "broadcast",
+    "title": "Streaming Text-to-Speech",
+    "difficulty": "intermediate",
+    "icon": "broadcast",
+    "description": "Stream synthesized speech chunk by chunk with aiSpeakStream() so audio can start before generation finishes.",
+    "guidance": "aiSpeak() waits for the whole audio file. aiSpeakStream( text, callback, params, options ) hands you the audio in pieces as the provider generates it, so you can play or forward it after the first chunk.\n\nYour callback receives one struct per event, discriminated by type:\n• { type: \"audio\", data: <binary>, format, sampleRate, sequence }\n• { type: \"timestamps\", words, start, end } (Cartesia over SSE with add_timestamps)\n• { type: \"done\", chunks, bytes } (always last)\n\nAudio and timestamps events interleave. The return value is a summary struct: { provider, model, audioFormat, sampleRate, chunks, bytes, completed }.\n\nProviders that stream: cartesia, elevenlabs, openai, mistral and gemini. xAI (grok) only streams over a WebSocket, which is not supported yet, so it throws UnsupportedCapability.\n\nThis sample uses Cartesia. Set CARTESIA_API_KEY, or change provider and set that provider's key. Requires a bx-ai build that includes aiSpeakStream().",
+    "output": "Streamed mp3:\n  Chunks:    143\n  Bytes:     72351\n  Completed: true\n  First 3 chunk sizes: 462, 836, 418\n\nEvent types, in order of first appearance: audio > timestamps > audio > timestamps > audio > timestamps > audio > done\n\nFluent builder:\n  Format: pcm at 24000 Hz\n  Chunks: 11",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/audio/streaming-speech.md",
+    "provider": "cartesia"
+}
+*/
+
+// 1. Stream mp3 and assemble the chunks into a file.
+//    The callback runs once per audio chunk, as the provider generates it.
+audioBuffer = createObject( "java", "java.io.ByteArrayOutputStream" ).init()
+chunkSizes  = []
+
+summary = aiSpeakStream(
+    text    : "BoxLang can stream speech to your customers while it is still being generated.",
+    callback: ( event ) => {
+        if ( event.type == "audio" ) {
+            audioBuffer.write( event.data )
+            chunkSizes.append( event.data.len() )
+        }
+    },
+    options : { provider: "cartesia", outputFormat: "mp3" }
+)
+
+fileWrite( "/tmp/boxlang-stream.mp3", audioBuffer.toByteArray() )
+
+println( "Streamed mp3:" )
+println( "  Chunks:    " & summary.chunks )
+println( "  Bytes:     " & summary.bytes )
+println( "  Completed: " & summary.completed )
+println( "  First 3 chunk sizes: " & chunkSizes.slice( 1, 3 ).toList( ", " ) )
+println( "" )
+
+// 2. Every event has a type. Print the order they arrive in.
+seen = []
+aiSpeakStream(
+    text    : "Events arrive in order.",
+    callback: ( event ) => {
+        if ( seen.len() == 0 || seen.last() != event.type ) {
+            seen.append( event.type )
+        }
+    },
+    params  : { add_timestamps: true },
+    options : { provider: "cartesia", outputFormat: "pcm" }
+)
+println( "Event types, in order of first appearance: " & seen.toList( " > " ) )
+println( "" )
+
+// 3. The fluent builder streams too
+summary = aiSpeak()
+    .text( "The fluent builder streams too." )
+    .provider( "cartesia" )
+    .female()
+    .asPCM()
+    .stream( ( event ) => {} )
+
+println( "Fluent builder:" )
+println( "  Format: " & summary.audioFormat & " at " & summary.sampleRate & " Hz" )
+println( "  Chunks: " & summary.chunks )

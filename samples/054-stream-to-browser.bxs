@@ -1,0 +1,53 @@
+/**
+{
+    "id": "054",
+    "category": "Voice Streaming",
+    "categorySlug": "voice-streaming",
+    "categoryIcon": "broadcast",
+    "title": "Stream Speech to a Browser or Phone",
+    "difficulty": "advanced",
+    "icon": "browser",
+    "description": "How streamed audio reaches a listener: pick a format per listener and hang up when they leave.",
+    "guidance": "aiSpeakStream() gives your server the audio. Something has to carry it to the listener. No plugin is needed: the browser plays streamed audio with its own <audio> tag or the Web Audio API.\n\nThis sample simulates the transport so you can see the shape. The callback pushes each chunk to sendToClient(), and returns false when the listener has gone. Pick the format that fits the listener:\n• mp3: a browser <audio src=\"speak.bxm?...\"> tag plays it as it arrives\n• pcm: voice agents, played with Web Audio, lowest latency\n• mulaw: phone calls (Twilio, SIP), 8kHz\n\nIn a real BoxLang web page, sendToClient() writes to the response channel and flushes after every chunk (verified on MiniServer 1.17.0):\n\npageContext = getPageContext()\npageContext.setContentType( \"audio/mpeg\" )\nchannel = pageContext.getExchange().getResponseChannel()\nByteBuffer = createObject( \"java\", \"java.nio.ByteBuffer\" )\n// per chunk:\nbuffer = ByteBuffer.wrap( event.data )\nwhile ( buffer.hasRemaining() ) {\n    channel.write( buffer )\n    if ( buffer.hasRemaining() ) { channel.awaitWritable() }\n}\nchannel.flush()\n\nIf a write fails the listener is gone: return false so the provider stops generating. A complete runnable demo, with an mp3 mode and a PCM voice-agent mode with word highlighting, is in bx-ai under examples/http-streaming-speech and in bx-ai-intro under examples/speech-stream-http.\n\nDemo endpoints spend provider credits for anyone who can reach them. Add authentication and rate limits before exposing one.",
+    "output": "Browser <audio> tag, stays to the end (mp3)\n  heard 165 chunks, 79875 bytes\n  listener hung up: false\nVoice agent, interrupted early (pcm)\n  heard 5 chunks, 41888 bytes\n  listener hung up: true\nPhone call, 8kHz, caller hangs up (mulaw)\n  heard 6 chunks, 8735 bytes\n  listener hung up: true",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/audio/streaming-speech.md",
+    "provider": "cartesia"
+}
+*/
+
+// The listener never sees aiSpeakStream(). Your server pulls chunks from the
+// provider and pushes them to a transport: an HTTP response for a browser,
+// a WebSocket for a phone bridge. This sample simulates the transport so you
+// can see the shape. In a real endpoint, sendToClient() writes to the
+// response channel (see the guidance for the exact code).
+
+// A fake client. It accepts bytes until it has "heard" enough, then hangs up.
+function streamTo( required string label, required string format, required numeric hangUpAfterBytes ) {
+    heard = { bytes: 0, chunks: 0 }
+
+    // Returning false tells aiSpeakStream() the listener is gone.
+    sendToClient = ( bytes ) => {
+        heard.bytes += bytes.len()
+        heard.chunks++
+        return heard.bytes < hangUpAfterBytes
+    }
+
+    summary = aiSpeakStream(
+        text    : "Thank you for calling. Your appointment is confirmed for Tuesday at three in the afternoon.",
+        callback: ( event ) => {
+            if ( event.type == "audio" ) {
+                return sendToClient( event.data )
+            }
+        },
+        options : { provider: "cartesia", outputFormat: arguments.format }
+    )
+
+    println( arguments.label & " (" & arguments.format & ")" )
+    println( "  heard " & heard.chunks & " chunks, " & heard.bytes & " bytes" )
+    println( "  listener hung up: " & !summary.completed )
+}
+
+// Pick the format that matches the listener.
+streamTo( "Browser <audio> tag, stays to the end", "mp3",   999999999 )
+streamTo( "Voice agent, interrupted early",        "pcm",   40000 )
+streamTo( "Phone call, 8kHz, caller hangs up",     "mulaw", 8000 )

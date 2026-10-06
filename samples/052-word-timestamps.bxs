@@ -1,0 +1,55 @@
+/**
+{
+    "id": "052",
+    "category": "Voice Streaming",
+    "categorySlug": "voice-streaming",
+    "categoryIcon": "broadcast",
+    "title": "Word Timestamps",
+    "difficulty": "intermediate",
+    "icon": "closed-captioning",
+    "description": "Get per-word timings while streaming, for captions, highlighting and lip-sync.",
+    "guidance": "Cartesia can send word timings alongside the audio. Pass add_timestamps: true in params. pcm, mulaw and alaw stream over SSE, which carries the timestamps. mp3 and wav stream as raw bytes over /tts/bytes, which has no timestamps.\n\nEach timestamps event has parallel arrays: words, start and end (seconds from the start of the audio). Use them to highlight words as they are spoken, build captions, or drive an avatar.\n\nparams.sample_rate sets the PCM sample rate (default 24000). Other providers stream audio only, so no timestamps events arrive for them.",
+    "output": "Word timings:\n  0.12s - 0.44s  Each\n  0.52s - 0.76s  word\n  0.76s - 1.24s  arrives\n  1.32s - 1.40s  with\n  1.48s - 1.56s  its\n  1.56s - 2.04s  timing.\n\nAt 0.60s the word is: word\nAt 1.00s the word is: arrives",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/audio/streaming-speech.md",
+    "provider": "cartesia"
+}
+*/
+
+// Cartesia sends word timings alongside the audio when you ask for them.
+// pcm, mulaw and alaw stream over SSE, which carries the timestamps.
+captions = []
+
+aiSpeakStream(
+    text    : "Each word arrives with its timing.",
+    callback: ( event ) => {
+        if ( event.type == "timestamps" ) {
+            for ( i = 1; i <= event.words.len(); i++ ) {
+                captions.append( {
+                    word : event.words[ i ],
+                    start: event.start[ i ],
+                    end  : event.end[ i ]
+                } )
+            }
+        }
+    },
+    params  : { add_timestamps: true, sample_rate: 16000 },
+    options : { provider: "cartesia", outputFormat: "pcm" }
+)
+
+println( "Word timings:" )
+for ( c in captions ) {
+    println( "  " & numberFormat( c.start, "0.00" ) & "s - " & numberFormat( c.end, "0.00" ) & "s  " & c.word )
+}
+println( "" )
+
+// Turn the timings into a caption schedule: which word is showing at a given time?
+function wordAt( seconds ) {
+    for ( c in captions ) {
+        if ( seconds >= c.start && seconds < c.end ) {
+            return c.word
+        }
+    }
+    return "(silence)"
+}
+println( "At 0.60s the word is: " & wordAt( 0.60 ) )
+println( "At 1.00s the word is: " & wordAt( 1.00 ) )
