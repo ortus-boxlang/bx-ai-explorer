@@ -4,7 +4,7 @@
 
 BoxLang AI Explorer is a local, browser-based catalog of BoxLang AI examples. It presents the `.bxs` files in `samples/` by category and difficulty, with guidance, source code, and sample output for each example.
 
-The samples cover chat, structured responses, streaming, async requests, tools, memory, agents, pipelines, RAG, orchestration, MCP servers, image/speech/audio generation, middleware, reasoning, gateways, human-in-the-loop approvals, security guardrails, agent run control, and AWS Bedrock.
+The samples cover chat, structured responses, streaming, async requests, tools, memory, agents, pipelines, RAG, orchestration, MCP servers, image/speech/audio generation, streaming speech and Cartesia voices, middleware, reasoning, gateways, human-in-the-loop approvals, security guardrails, agent run control, and AWS Bedrock.
 
 ## Requirements
 
@@ -153,6 +153,7 @@ Most samples need only an AI provider key. Some examples require additional conf
 - `032-mcp-server.bxs` demonstrates an MCP server and is intended to be run as a BoxLang script rather than used as a normal chat request.
 - `033-image-generation.bxs` writes generated images to `/tmp`. Make sure the process can write there, and that the selected provider (OpenAI by default) supports image generation.
 - `034-text-to-speech.bxs` and `035-speech-to-text.bxs` write/read audio files under `/tmp`. Make sure the process can write there.
+- `050-streaming-text-to-speech.bxs` through `054-stream-to-browser.bxs`, and `053-cartesia-voices-and-formats.bxs`, use Cartesia and need `CARTESIA_API_KEY`. Streaming speech also works with ElevenLabs, OpenAI, Mistral and Gemini by changing `provider`. They need a `bx-ai` build that includes `aiSpeakStream()` and the Cartesia provider (the `development` branch until the next release), and they write a few files under `/tmp`.
 - `036-web-search-bif.bxs` runs offline against the default `http` provider (no API key), but its optional Brave example requires `BRAVE_API_KEY` (or another web search provider key) configured in the `bxai` settings.
 - `038-middleware-pipeline.bxs`, `042-gateways.bxs` through `047-security-output-guardrails.bxs`, and `048-agent-run-control.bxs` run fully offline against the built-in `mock` AI provider — no API key needed.
 - `045-decision-store.bxs` uses a CacheBox-backed decision store by default; no extra configuration needed to run it as-is.

@@ -1,0 +1,59 @@
+/**
+{
+    "id": "053",
+    "category": "Media Generation",
+    "categorySlug": "media-generation",
+    "categoryIcon": "image",
+    "title": "Cartesia Voices and Formats",
+    "difficulty": "intermediate",
+    "icon": "microphone",
+    "description": "Text-to-speech and speech-to-text with Cartesia: voices, emotion, formats and a round trip.",
+    "guidance": "Cartesia is a low-latency voice provider. Sonic generates speech and Ink-Whisper transcribes it, through the same aiSpeak() and aiTranscribe() BIFs. Set CARTESIA_API_KEY.\n\nVoices: \"male\" and \"female\" resolve to Cartesia voices, or pass any voice ID from the Cartesia library as params.voice. Delivery is controlled with params.emotion, params.speed (0.6 to 1.5) and params.volume (0.5 to 2.0), or a full generation_config struct.\n\nFormats: mp3 and wav are containers. pcm, mulaw and alaw are raw audio for pipelines and phone systems. Set params.sample_rate to change the rate.\n\nUnsupported features fail loudly: aiTranslate() throws UnsupportedCapability because Cartesia has no translation endpoint, and flac or opus output throws InvalidArgument.\n\nTo stream this audio as it is generated, see the Streaming Text-to-Speech sample.",
+    "output": "Saved a cheerful male voice to /tmp/boxlang-cartesia.wav\n\nOutput formats:\n  MP3: 33899 bytes\n  WAV: 162366 bytes\n  PCM: 96000 bytes\n  MULAW: 15360 bytes\n  ALAW: 14720 bytes\n\nTranscription: Great news. Your order has shipped.\nLanguage:      en\nWords:         6\n\naiTranslate: UnsupportedCapability\nflac output: InvalidArgument",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/audio/text-to-speech.md",
+    "provider": "cartesia"
+}
+*/
+
+// 1. Voices and delivery. "male" and "female" resolve to Cartesia voices,
+//    or pass any voice ID from the Cartesia library.
+aiSpeak(
+    text   : "Great news! Your order has shipped.",
+    params : { voice: "male", emotion: "happy", speed: 1.1 },
+    options: { provider: "cartesia", outputFormat: "wav", outputFile: "/tmp/boxlang-cartesia.wav" }
+)
+println( "Saved a cheerful male voice to /tmp/boxlang-cartesia.wav" )
+println( "" )
+
+// 2. Output formats. mp3 and wav are containers; pcm, mulaw and alaw are raw.
+println( "Output formats:" )
+for ( format in [ "mp3", "wav", "pcm", "mulaw", "alaw" ] ) {
+    response = aiSpeak(
+        text   : "Testing the " & format & " format.",
+        options: { provider: "cartesia", outputFormat: format }
+    )
+    println( "  " & format.ucase() & ": " & response.getSize() & " bytes" )
+}
+println( "" )
+
+// 3. Speech-to-text with Ink-Whisper, closing the loop on the audio above.
+result = aiTranscribe(
+    audio  : "/tmp/boxlang-cartesia.wav",
+    options: { provider: "cartesia", returnFormat: "response" }
+)
+println( "Transcription: " & result.getText() )
+println( "Language:      " & result.getLanguage() )
+println( "Words:         " & result.getWords().len() )
+println( "" )
+
+// 4. Unsupported features fail loudly instead of returning something wrong.
+try {
+    aiTranslate( audio: "/tmp/boxlang-cartesia.wav", options: { provider: "cartesia" } )
+} catch ( any e ) {
+    println( "aiTranslate: " & e.type )
+}
+try {
+    aiSpeak( text: "Hi", options: { provider: "cartesia", outputFormat: "flac" } )
+} catch ( any e ) {
+    println( "flac output: " & e.type )
+}

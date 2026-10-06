@@ -1,0 +1,60 @@
+/**
+{
+    "id": "051",
+    "category": "Voice Streaming",
+    "categorySlug": "voice-streaming",
+    "categoryIcon": "broadcast",
+    "title": "Time to First Audio and Barge-In",
+    "difficulty": "advanced",
+    "icon": "hand-palm",
+    "description": "Measure how fast the first audio arrives, and stop a stream the moment the listener interrupts.",
+    "guidance": "Two things matter for voice agents: how soon the first audio arrives, and how quickly you can stop when the caller interrupts.\n\nTime to first audio: the callback fires for the first audio chunk long before the full answer is generated. This sample warms the connection first so the timing measures streaming, not one-time startup. Your numbers depend on provider, network and text length.\n\nBarge-in: return an explicit false from the callback and aiSpeakStream() closes the provider connection immediately, so the provider stops generating. The final done event is still delivered, and the summary reports completed: false. Any other return value (nothing, a number, a string) keeps streaming.\n\nThe timeout option is an idle timeout: the longest the stream waits for response headers or between received bytes. A stalled provider is aborted with a ProviderError, while a healthy stream of any length is never cut off.",
+    "output": "First audio chunk after: 618 ms\nWhole stream finished:   1478 ms\n\nChunks received before stopping: 3\nStream completed normally:       false\nChunks reported in the summary:  3",
+    "docsUrl": "https://ai.ortusbooks.com/main-components/audio/streaming-speech.md",
+    "provider": "cartesia"
+}
+*/
+
+// Warm up the connection first, so the timing below measures streaming and not
+// one-time startup (module load, TLS handshake) in a fresh process.
+aiSpeakStream( text: "Warm up.", callback: ( event ) => {}, options: { provider: "cartesia", outputFormat: "pcm" } )
+
+// 1. Time to first audio: the reason to stream.
+startedAt    = getTickCount()
+firstAudioAt = 0
+
+aiSpeakStream(
+    text    : "Streaming lets a listener hear the first words almost immediately, even for a long answer. That is the whole point of streaming speech.",
+    callback: ( event ) => {
+        if ( event.type == "audio" && firstAudioAt == 0 ) {
+            firstAudioAt = getTickCount() - startedAt
+        }
+    },
+    options : { provider: "cartesia", outputFormat: "pcm" }
+)
+totalMs = getTickCount() - startedAt
+
+println( "First audio chunk after: " & firstAudioAt & " ms" )
+println( "Whole stream finished:   " & totalMs & " ms" )
+println( "" )
+
+// 2. Stop early. Return false from the callback and the provider
+//    connection is closed immediately.
+received = 0
+
+summary = aiSpeakStream(
+    text    : "This is a long sentence that will be cut off because the caller interrupts the agent after just a few chunks of audio.",
+    callback: ( event ) => {
+        if ( event.type == "audio" ) {
+            received++
+            if ( received >= 3 ) {
+                return false
+            }
+        }
+    },
+    options : { provider: "cartesia", outputFormat: "mulaw" }
+)
+
+println( "Chunks received before stopping: " & received )
+println( "Stream completed normally:       " & summary.completed )
+println( "Chunks reported in the summary:  " & summary.chunks )
